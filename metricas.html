@@ -1,0 +1,433 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Métricas · Clic Redes</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --fundo:#f4f6f8; --cartao:#ffffff; --texto:#14212b; --suave:#5b6b78;
+    --borda:#dde3e8; --marca:#0f766e; --marca-escura:#0b5c56; --marca-clara:#e6f4f2;
+    --ok:#067647; --ok-fundo:#ecfdf3; --erro:#b42318; --erro-fundo:#fef3f2;
+  }
+  *{box-sizing:border-box}
+  [hidden]{display:none !important}
+  body{margin:0;background:var(--fundo);color:var(--texto);font-family:Inter,system-ui,sans-serif}
+  header{background:var(--cartao);border-bottom:1px solid var(--borda)}
+  .topo{max-width:1180px;margin:0 auto;padding:14px 16px;display:flex;align-items:center;gap:16px}
+  .logo{display:flex;align-items:center;gap:9px;font-weight:700;font-size:18px}
+  .logo span{width:30px;height:30px;border-radius:8px;background:var(--marca);color:#fff;display:grid;place-items:center;font-size:15px}
+  nav{display:flex;gap:4px;margin-left:12px;flex:1;overflow-x:auto}
+  nav a{padding:7px 11px;border-radius:7px;color:var(--suave);text-decoration:none;font-size:14px;font-weight:500;white-space:nowrap}
+  nav a.ativo{background:var(--marca-clara);color:var(--marca)}
+  nav a.breve{opacity:.45;pointer-events:none}
+  .sair{background:none;border:1px solid var(--borda);border-radius:7px;padding:7px 11px;font:inherit;font-size:13px;cursor:pointer;color:var(--suave)}
+  main{max-width:1180px;margin:0 auto;padding:22px 16px 40px}
+
+  .barra{display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin-bottom:18px}
+  .barra h1{font-size:20px;margin:0 12px 0 0}
+  select{font:inherit;font-size:14px;padding:8px 10px;border:1px solid var(--borda);border-radius:9px;background:var(--cartao);color:var(--texto)}
+  .grupo{display:inline-flex;border:1px solid var(--borda);border-radius:9px;overflow:hidden;background:var(--cartao)}
+  .grupo button{border:0;background:none;padding:8px 12px;font:inherit;font-size:14px;cursor:pointer;color:var(--texto)}
+  .grupo button+button{border-left:1px solid var(--borda)}
+  .grupo button.on{background:var(--marca-clara);color:var(--marca);font-weight:600}
+  .espaco{flex:1}
+  .atualizado{font-size:12px;color:var(--suave)}
+  .btn{display:inline-flex;align-items:center;gap:6px;padding:9px 14px;border-radius:9px;border:1px solid var(--borda);
+       background:var(--cartao);font:inherit;font-size:14px;font-weight:600;cursor:pointer;color:var(--texto)}
+  .btn:disabled{opacity:.55;cursor:wait}
+  .aviso{padding:12px 14px;border-radius:10px;font-size:14px;margin-bottom:14px;display:none}
+  .aviso.ok{display:block;background:var(--ok-fundo);color:var(--ok)}
+  .aviso.erro{display:block;background:var(--erro-fundo);color:var(--erro)}
+
+  .kpis{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:10px;margin-bottom:14px}
+  .kpi{background:var(--cartao);border:1px solid var(--borda);border-radius:12px;padding:14px 16px}
+  .kpi .nome{font-size:13px;color:var(--suave);font-weight:500}
+  .kpi .valor{font-size:26px;font-weight:700;margin-top:4px;font-variant-numeric:tabular-nums}
+  .kpi .var{font-size:12.5px;margin-top:2px;color:var(--suave)}
+  .kpi .var.sobe{color:var(--ok)} .kpi .var.desce{color:var(--erro)}
+
+  .linha2{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px}
+  .bloco{background:var(--cartao);border:1px solid var(--borda);border-radius:12px;padding:16px 18px}
+  .bloco h2{font-size:15px;margin:0 0 4px}
+  .bloco .desc{font-size:13px;color:var(--suave);margin:0 0 12px}
+  .grafico{width:100%;height:auto;display:block}
+  .vazio{color:var(--suave);font-size:14px;padding:26px 8px;text-align:center}
+
+  /* Melhor horario */
+  .mapa-wrap{overflow-x:auto}
+  .mapa{display:grid;grid-template-columns:38px repeat(24,minmax(18px,1fr));gap:2px;min-width:560px;font-size:11px}
+  .mapa .h{color:var(--suave);text-align:center}
+  .mapa .d{color:var(--suave);display:flex;align-items:center;font-weight:600}
+  .mapa .c{height:20px;border-radius:3px;background:#eef1f3}
+  .top3{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
+  .top3 span{background:var(--marca-clara);color:var(--marca);font-weight:600;font-size:13px;padding:5px 10px;border-radius:999px}
+  .legenda-mapa{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--suave);margin-top:10px}
+  .legenda-mapa i{width:14px;height:14px;border-radius:3px;display:inline-block}
+
+  /* Tabela */
+  .tabela-wrap{overflow-x:auto}
+  table{width:100%;border-collapse:collapse;font-size:13.5px}
+  th{text-align:right;font-size:12px;color:var(--suave);font-weight:600;padding:9px 10px;border-bottom:1px solid var(--borda);white-space:nowrap;cursor:pointer;user-select:none}
+  th:first-child,th:nth-child(2),th:nth-child(3){text-align:left}
+  th.ord::after{content:" ▾"} th.ord.asc::after{content:" ▴"}
+  td{padding:9px 10px;border-bottom:1px solid var(--borda);text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+  td:nth-child(1),td:nth-child(2){text-align:left}
+  td:nth-child(3){text-align:left;white-space:normal;min-width:220px;max-width:360px}
+  td:nth-child(3) a{color:var(--texto);text-decoration:none;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+  td:nth-child(3) a:hover{color:var(--marca);text-decoration:underline}
+  tr:last-child td{border-bottom:0}
+  .tipo{font-size:11px;font-weight:700;padding:2px 7px;border-radius:999px;background:#f2f4f7;color:#475467}
+  .cabeca-tabela{display:flex;align-items:center;gap:10px;margin-bottom:8px}
+  .cabeca-tabela h2{margin:0;flex:1}
+  footer{text-align:center;font-size:12px;color:var(--suave);padding:0 16px 28px}
+
+  @media (max-width:980px){ .kpis{grid-template-columns:repeat(2,minmax(0,1fr))} .linha2{grid-template-columns:1fr} }
+  @media (max-width:900px){ .topo{flex-wrap:wrap} nav{order:3;flex-basis:100%;margin-left:0} .sair{margin-left:auto} }
+</style>
+</head>
+<body>
+<header>
+  <div class="topo">
+    <div class="logo"><span>C</span>Clic Redes</div>
+    <nav>
+      <a href="planejamento.html">Planejamento</a>
+      <a class="ativo" href="metricas.html">Métricas</a>
+      <a class="breve" href="#">Caixa de entrada</a>
+      <a href="contas.html">Contas</a>
+    </nav>
+    <button class="sair" id="sair">Sair</button>
+  </div>
+</header>
+
+<main>
+  <div class="barra">
+    <h1>Métricas</h1>
+    <select id="conta" aria-label="Conta"></select>
+    <div class="grupo" id="periodo">
+      <button data-dias="7">7 dias</button>
+      <button data-dias="30" class="on">30 dias</button>
+      <button data-dias="90">90 dias</button>
+    </div>
+    <span class="espaco"></span>
+    <span class="atualizado" id="atualizado"></span>
+    <button class="btn" id="atualizar">Atualizar agora</button>
+  </div>
+  <div class="aviso" id="aviso"></div>
+
+  <div id="semConta" class="bloco" hidden>
+    <div class="vazio">Conecte uma conta em <a href="contas.html">Contas</a> para ver as métricas.</div>
+  </div>
+
+  <div id="painel" hidden>
+    <section class="kpis" id="kpis"></section>
+
+    <section class="linha2">
+      <div class="bloco">
+        <h2>Seguidores</h2>
+        <p class="desc">Total no fim de cada dia</p>
+        <div id="gSeguidores"></div>
+      </div>
+      <div class="bloco">
+        <h2>Visualizações por dia</h2>
+        <p class="desc">Quantas vezes seu conteúdo foi visto</p>
+        <div id="gVisualizacoes"></div>
+      </div>
+    </section>
+
+    <section class="bloco" style="margin-bottom:14px">
+      <h2>Melhor horário para postar</h2>
+      <p class="desc" id="descMapa">Média de visualizações dos seus posts, por dia da semana e hora em que foram publicados (últimos 90 dias, horário de Brasília).</p>
+      <div class="mapa-wrap"><div class="mapa" id="mapa"></div></div>
+      <div class="legenda-mapa">menos <i style="background:#eef1f3"></i><i style="background:#b9e0db"></i><i style="background:#5fb3a8"></i><i style="background:#0f766e"></i> mais</div>
+      <div class="top3" id="top3"></div>
+    </section>
+
+    <section class="bloco">
+      <div class="cabeca-tabela">
+        <h2>Posts do período</h2>
+        <button class="btn" id="csv">Baixar CSV</button>
+      </div>
+      <div class="tabela-wrap" id="tabela"></div>
+    </section>
+  </div>
+</main>
+<footer>Clic Redes · metricas.html v1.0</footer>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+  const SUPABASE_URL = "https://ochesgabptfapmogxmvv.supabase.co";
+  const SUPABASE_KEY = "sb_publishable_J06qsVfOBpm4LdMu-hmkiQ_LO7TIyfE";
+  const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+  const $ = (id) => document.getElementById(id);
+  const esc = (t) => String(t ?? "").replace(/[&<>"']/g, (c) =>
+    ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+  const num = (n) => (n == null ? "—" : Number(n).toLocaleString("pt-BR"));
+  const DIAS = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
+  const TIPO = { REELS: "Reel", CARROSSEL: "Carrossel", VIDEO: "Vídeo", IMAGEM: "Foto" };
+
+  let contas = [];
+  let contaId = null;
+  let dias = 30;
+  let diarias = [];
+  let postsPeriodo = [];
+  let ordem = { col: "publicado_em", asc: false };
+
+  function mostrarAviso(t, tipo) {
+    const a = $("aviso"); a.textContent = t; a.className = "aviso " + tipo;
+    if (tipo === "ok") setTimeout(() => (a.className = "aviso"), 5000);
+  }
+
+  // Dia AAAA-MM-DD no horario de Brasilia
+  function diaBR(d) { return new Date(d.getTime() - 3 * 3600 * 1000).toISOString().slice(0, 10); }
+  // Dia da semana e hora em Brasilia
+  function slotBR(iso) {
+    const d = new Date(new Date(iso).getTime() - 3 * 3600 * 1000);
+    return { dia: d.getUTCDay(), hora: d.getUTCHours() };
+  }
+
+  async function iniciar() {
+    const { data } = await sb.auth.getSession();
+    if (!data.session) { location.href = "index.html"; return; }
+    const { data: marcas } = await sb.from("marcas").select("id").order("criado_em").limit(1);
+    if (!marcas?.length) { location.href = "contas.html"; return; }
+    const { data: cs } = await sb.from("contas_redes")
+      .select("id, rede, usuario").eq("marca_id", marcas[0].id).eq("ativo", true).order("criado_em");
+    contas = (cs || []).filter((c) => c.rede === "instagram");
+    if (!contas.length) { $("semConta").hidden = false; $("atualizar").disabled = true; return; }
+    $("conta").innerHTML = contas.map((c) => `<option value="${c.id}">@${esc(c.usuario)}</option>`).join("");
+    contaId = contas[0].id;
+    $("painel").hidden = false;
+    await carregar();
+  }
+
+  async function carregar() {
+    const desde = new Date(Date.now() - dias * 86400000);
+    const desde90 = new Date(Date.now() - 90 * 86400000);
+    const [rd, rp] = await Promise.all([
+      sb.from("metricas_diarias").select("*").eq("conta_id", contaId)
+        .gte("dia", diaBR(new Date(desde.getTime() - 86400000))).order("dia"),
+      sb.from("metricas_posts").select("*").eq("conta_id", contaId)
+        .gte("publicado_em", desde90.toISOString()).order("publicado_em", { ascending: false }),
+    ]);
+    if (rd.error || rp.error) { mostrarAviso("Erro ao carregar as métricas.", "erro"); return; }
+    diarias = rd.data || [];
+    const todos = rp.data || [];
+    postsPeriodo = todos.filter((p) => new Date(p.publicado_em) >= desde);
+
+    const ultima = todos.reduce((m, p) => (p.atualizado_em > m ? p.atualizado_em : m), "");
+    $("atualizado").textContent = ultima
+      ? "Atualizado " + new Date(ultima).toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" }) : "Ainda sem dados";
+
+    desenharKpis();
+    $("gSeguidores").innerHTML = graficoLinha(diarias.filter((d) => d.seguidores != null), "seguidores");
+    $("gVisualizacoes").innerHTML = graficoBarras(diarias.filter((d) => d.visualizacoes != null), "visualizacoes");
+    desenharMapa(todos);
+    desenharTabela();
+  }
+
+  function desenharKpis() {
+    const comSeg = diarias.filter((d) => d.seguidores != null);
+    const segAtual = comSeg.length ? comSeg[comSeg.length - 1].seguidores : null;
+    const segInicio = comSeg.length ? comSeg[0].seguidores : null;
+    const dif = segAtual != null && segInicio != null ? segAtual - segInicio : null;
+    const limite = diaBR(new Date(Date.now() - dias * 86400000));
+    const doPeriodo = diarias.filter((d) => d.dia >= limite);
+    const soma = (campo) => {
+      const v = doPeriodo.filter((d) => d[campo] != null);
+      return v.length ? v.reduce((s, d) => s + d[campo], 0) : null;
+    };
+    const interPosts = postsPeriodo.reduce((s, p) => s + (p.curtidas || 0) + (p.comentarios || 0) + (p.salvos || 0) + (p.compartilhamentos || 0), 0);
+    const alcPosts = postsPeriodo.reduce((s, p) => s + (p.alcance || 0), 0);
+    const engaj = alcPosts ? (interPosts / alcPosts) * 100 : null;
+
+    const kpi = (nome, valor, varTxt, classe) => `<div class="kpi"><div class="nome">${nome}</div>
+      <div class="valor">${valor}</div><div class="var ${classe || ""}">${varTxt || "&nbsp;"}</div></div>`;
+    $("kpis").innerHTML =
+      kpi("Seguidores", num(segAtual),
+        dif == null ? "" : `${dif >= 0 ? "+" : ""}${num(dif)} no período`, dif > 0 ? "sobe" : dif < 0 ? "desce" : "") +
+      kpi("Visualizações", num(soma("visualizacoes")), `últimos ${dias} dias`) +
+      kpi("Alcance", num(soma("alcance")), "soma dos dias") +
+      kpi("Interações", num(soma("interacoes")), `últimos ${dias} dias`) +
+      kpi("Engajamento dos posts", engaj == null ? "—" : engaj.toLocaleString("pt-BR", { maximumFractionDigits: 1 }) + "%",
+        `${postsPeriodo.length} post(s) no período`);
+  }
+
+  // ---------- Graficos em SVG ----------
+  function eixoDatas(pontos, X, h) {
+    if (!pontos.length) return "";
+    const idx = [0, Math.floor((pontos.length - 1) / 2), pontos.length - 1].filter((v, i, a) => a.indexOf(v) === i);
+    return idx.map((i) => {
+      const [, m, d] = pontos[i].dia.split("-");
+      const ancora = i === 0 ? "start" : i === pontos.length - 1 ? "end" : "middle";
+      return `<text x="${X(i)}" y="${h - 4}" text-anchor="${ancora}" font-size="11" fill="#5b6b78">${d}/${m}</text>`;
+    }).join("");
+  }
+
+  function graficoLinha(pontos, campo) {
+    if (pontos.length < 2) return '<div class="vazio">Os dados aparecem a partir do segundo dia de coleta.</div>';
+    const w = 520, h = 200, e = 44, t = 12, b = 26;
+    const vals = pontos.map((p) => p[campo]);
+    let min = Math.min(...vals), max = Math.max(...vals);
+    if (min === max) { min -= 1; max += 1; }
+    const X = (i) => e + (i / (pontos.length - 1)) * (w - e - 10);
+    const Y = (v) => t + (1 - (v - min) / (max - min)) * (h - t - b);
+    const caminho = pontos.map((p, i) => `${i ? "L" : "M"}${X(i).toFixed(1)} ${Y(p[campo]).toFixed(1)}`).join(" ");
+    const area = `${caminho} L${X(pontos.length - 1)} ${h - b} L${X(0)} ${h - b} Z`;
+    const ult = pontos[pontos.length - 1];
+    return `<svg class="grafico" viewBox="0 0 ${w} ${h}" role="img" aria-label="Seguidores por dia">
+      <line x1="${e}" x2="${w - 10}" y1="${h - b}" y2="${h - b}" stroke="#dde3e8"/>
+      <text x="${e - 6}" y="${Y(max) + 4}" text-anchor="end" font-size="11" fill="#5b6b78">${num(max)}</text>
+      <text x="${e - 6}" y="${Y(min) + 4}" text-anchor="end" font-size="11" fill="#5b6b78">${num(min)}</text>
+      <path d="${area}" fill="#0f766e" fill-opacity=".08"/>
+      <path d="${caminho}" fill="none" stroke="#0f766e" stroke-width="2"/>
+      <circle cx="${X(pontos.length - 1)}" cy="${Y(ult[campo])}" r="3.5" fill="#0f766e"/>
+      ${eixoDatas(pontos, X, h)}
+    </svg>`;
+  }
+
+  function graficoBarras(pontos, campo) {
+    if (!pontos.length) return '<div class="vazio">Ainda sem dados. Clique em "Atualizar agora".</div>';
+    const w = 520, h = 200, e = 44, t = 12, b = 26;
+    const max = Math.max(1, ...pontos.map((p) => p[campo]));
+    const passo = (w - e - 10) / pontos.length;
+    const larg = Math.max(2, Math.min(22, passo * 0.7));
+    const X = (i) => e + passo * (i + 0.5);
+    const Y = (v) => t + (1 - v / max) * (h - t - b);
+    const barras = pontos.map((p, i) =>
+      `<rect x="${(X(i) - larg / 2).toFixed(1)}" y="${Y(p[campo]).toFixed(1)}" width="${larg.toFixed(1)}" height="${(h - b - Y(p[campo])).toFixed(1)}" rx="2" fill="#0f766e"><title>${p.dia.split("-").reverse().slice(0, 2).join("/")}: ${num(p[campo])}</title></rect>`).join("");
+    return `<svg class="grafico" viewBox="0 0 ${w} ${h}" role="img" aria-label="Visualizações por dia">
+      <line x1="${e}" x2="${w - 10}" y1="${h - b}" y2="${h - b}" stroke="#dde3e8"/>
+      <text x="${e - 6}" y="${Y(max) + 4}" text-anchor="end" font-size="11" fill="#5b6b78">${num(max)}</text>
+      <text x="${e - 6}" y="${h - b + 4}" text-anchor="end" font-size="11" fill="#5b6b78">0</text>
+      ${barras}${eixoDatas(pontos, X, h)}
+    </svg>`;
+  }
+
+  // ---------- Melhor horario ----------
+  function desenharMapa(todos) {
+    const soma = Array.from({ length: 7 }, () => Array(24).fill(0));
+    const qtd = Array.from({ length: 7 }, () => Array(24).fill(0));
+    let usados = 0;
+    for (const p of todos) {
+      const v = p.visualizacoes ?? p.alcance;
+      if (v == null) continue;
+      const { dia, hora } = slotBR(p.publicado_em);
+      soma[dia][hora] += v; qtd[dia][hora]++; usados++;
+    }
+    const media = soma.map((l, d) => l.map((s, h) => (qtd[d][h] ? s / qtd[d][h] : null)));
+    const max = Math.max(0, ...media.flat().filter((v) => v != null));
+
+    let html = '<div></div>' + Array.from({ length: 24 }, (_, h) => `<div class="h">${h % 3 === 0 ? h + "h" : ""}</div>`).join("");
+    const cor = (v) => {
+      if (v == null || !max) return "#eef1f3";
+      const p = v / max;
+      return p > .75 ? "#0f766e" : p > .5 ? "#5fb3a8" : p > .25 ? "#b9e0db" : "#dceeec";
+    };
+    for (let d = 0; d < 7; d++) {
+      html += `<div class="d">${DIAS[d]}</div>`;
+      for (let h = 0; h < 24; h++) {
+        const v = media[d][h];
+        const dica = v == null ? "sem posts" : `${Math.round((v / max) * 100)}% · média ${num(Math.round(v))} visualizações (${qtd[d][h]} post${qtd[d][h] > 1 ? "s" : ""})`;
+        html += `<div class="c" style="background:${cor(v)}" title="${DIAS[d]} ${h}h: ${dica}"></div>`;
+      }
+    }
+    $("mapa").innerHTML = html;
+
+    const ranking = [];
+    media.forEach((l, d) => l.forEach((v, h) => { if (v != null) ranking.push({ d, h, v }); }));
+    ranking.sort((a, b) => b.v - a.v);
+    $("top3").innerHTML = usados < 10
+      ? `<span style="background:#f2f4f7;color:#475467">Com ${usados} post(s) ainda é cedo. O mapa fica confiável a partir de uns 10 posts.</span>`
+      : ranking.slice(0, 3).map((r, i) => `<span>${i + 1}º ${DIAS[r.d]} às ${r.h}h</span>`).join("");
+  }
+
+  // ---------- Tabela ----------
+  const COLS = [
+    ["publicado_em", "Data"], ["tipo", "Tipo"], ["texto", "Legenda"],
+    ["visualizacoes", "Visualiz."], ["alcance", "Alcance"], ["curtidas", "Curtidas"],
+    ["comentarios", "Coment."], ["salvos", "Salvos"], ["compartilhamentos", "Compart."], ["engaj", "Engaj."],
+  ];
+  function engajamento(p) {
+    if (!p.alcance) return null;
+    return ((p.curtidas || 0) + (p.comentarios || 0) + (p.salvos || 0) + (p.compartilhamentos || 0)) / p.alcance * 100;
+  }
+
+  function desenharTabela() {
+    if (!postsPeriodo.length) {
+      $("tabela").innerHTML = '<div class="vazio">Nenhum post publicado neste período.</div>';
+      return;
+    }
+    const linhas = postsPeriodo.map((p) => ({ ...p, engaj: engajamento(p) }));
+    linhas.sort((a, b) => {
+      const va = a[ordem.col], vb = b[ordem.col];
+      if (va == null) return 1; if (vb == null) return -1;
+      const r = va > vb ? 1 : va < vb ? -1 : 0;
+      return ordem.asc ? r : -r;
+    });
+    $("tabela").innerHTML = `<table><thead><tr>${COLS.map(([c, t]) =>
+      `<th data-col="${c}" class="${ordem.col === c ? "ord" + (ordem.asc ? " asc" : "") : ""}">${t}</th>`).join("")}</tr></thead>
+      <tbody>${linhas.map((p) => `<tr>
+        <td>${new Date(p.publicado_em).toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })}</td>
+        <td><span class="tipo">${TIPO[p.tipo] || p.tipo || ""}</span></td>
+        <td>${p.link ? `<a href="${esc(p.link)}" target="_blank" rel="noopener">${esc(p.texto) || "<i>sem legenda</i>"}</a>` : esc(p.texto)}</td>
+        <td>${num(p.visualizacoes)}</td><td>${num(p.alcance)}</td><td>${num(p.curtidas)}</td>
+        <td>${num(p.comentarios)}</td><td>${num(p.salvos)}</td><td>${num(p.compartilhamentos)}</td>
+        <td>${p.engaj == null ? "—" : p.engaj.toLocaleString("pt-BR", { maximumFractionDigits: 1 }) + "%"}</td>
+      </tr>`).join("")}</tbody></table>`;
+    $("tabela").querySelectorAll("th").forEach((th) => th.addEventListener("click", () => {
+      const c = th.dataset.col;
+      ordem = ordem.col === c ? { col: c, asc: !ordem.asc } : { col: c, asc: false };
+      desenharTabela();
+    }));
+  }
+
+  function baixarCsv() {
+    const cab = ["data", "tipo", "legenda", "link", "visualizacoes", "alcance", "curtidas", "comentarios", "salvos", "compartilhamentos", "engajamento_%"];
+    const q = (v) => `"${String(v ?? "").replace(/"/g, '""')}"`;
+    const linhas = postsPeriodo.map((p) => {
+      const e = engajamento(p);
+      return [new Date(p.publicado_em).toLocaleString("pt-BR"), TIPO[p.tipo] || p.tipo, p.texto, p.link,
+        p.visualizacoes, p.alcance, p.curtidas, p.comentarios, p.salvos, p.compartilhamentos,
+        e == null ? "" : e.toFixed(2).replace(".", ",")].map(q).join(";");
+    });
+    const blob = new Blob(["﻿" + [cab.join(";"), ...linhas].join("\n")], { type: "text/csv;charset=utf-8" });
+    const a = document.createElement("a");
+    const conta = contas.find((c) => c.id === contaId);
+    a.href = URL.createObjectURL(blob);
+    a.download = `metricas-${conta ? conta.usuario : "conta"}-${diaBR(new Date())}.csv`;
+    a.click();
+    URL.revokeObjectURL(a.href);
+  }
+
+  // ---------- Eventos ----------
+  $("conta").addEventListener("change", (e) => { contaId = e.target.value; carregar(); });
+  $("periodo").addEventListener("click", (e) => {
+    const b = e.target.closest("button"); if (!b) return;
+    dias = Number(b.dataset.dias);
+    document.querySelectorAll("#periodo button").forEach((x) => x.classList.toggle("on", x === b));
+    carregar();
+  });
+  $("atualizar").addEventListener("click", async () => {
+    const btn = $("atualizar");
+    btn.disabled = true; btn.textContent = "Buscando no Instagram...";
+    const { data, error } = await sb.functions.invoke("coletar-metricas", { body: {} });
+    btn.disabled = false; btn.textContent = "Atualizar agora";
+    const falhas = (data?.resultado || []).filter((r) => r.erro);
+    if (error || falhas.length) {
+      mostrarAviso("Não foi possível atualizar" + (falhas.length ? ": " + falhas.map((f) => `@${f.conta} (${f.erro})`).join(", ") : "."), "erro");
+    } else {
+      mostrarAviso("Métricas atualizadas.", "ok");
+    }
+    carregar();
+  });
+  $("csv").addEventListener("click", baixarCsv);
+  $("sair").addEventListener("click", async () => { await sb.auth.signOut(); location.href = "index.html"; });
+
+  iniciar();
+</script>
+</body>
+</html>
