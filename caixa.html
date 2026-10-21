@@ -1,0 +1,387 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Caixa de entrada · Clic Redes</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --fundo:#f4f6f8; --cartao:#ffffff; --texto:#14212b; --suave:#5b6b78;
+    --borda:#dde3e8; --marca:#0f766e; --marca-escura:#0b5c56; --marca-clara:#e6f4f2;
+    --ok:#067647; --ok-fundo:#ecfdf3; --erro:#b42318; --erro-fundo:#fef3f2;
+  }
+  *{box-sizing:border-box}
+  [hidden]{display:none !important}
+  body{margin:0;background:var(--fundo);color:var(--texto);font-family:Inter,system-ui,sans-serif}
+  header{background:var(--cartao);border-bottom:1px solid var(--borda)}
+  .topo{max-width:1180px;margin:0 auto;padding:14px 16px;display:flex;align-items:center;gap:16px}
+  .logo{display:flex;align-items:center;gap:9px;font-weight:700;font-size:18px}
+  .logo span{width:30px;height:30px;border-radius:8px;background:var(--marca);color:#fff;display:grid;place-items:center;font-size:15px}
+  nav{display:flex;gap:4px;margin-left:12px;flex:1;overflow-x:auto}
+  nav a{padding:7px 11px;border-radius:7px;color:var(--suave);text-decoration:none;font-size:14px;font-weight:500;white-space:nowrap}
+  nav a.ativo{background:var(--marca-clara);color:var(--marca)}
+  .sair{background:none;border:1px solid var(--borda);border-radius:7px;padding:7px 11px;font:inherit;font-size:13px;cursor:pointer;color:var(--suave)}
+  main{max-width:1180px;margin:0 auto;padding:22px 16px 30px}
+
+  .barra{display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin-bottom:14px}
+  .barra h1{font-size:20px;margin:0 8px 0 0}
+  .espaco{flex:1}
+  .atualizado{font-size:12px;color:var(--suave)}
+  .btn{display:inline-flex;align-items:center;gap:6px;padding:9px 14px;border-radius:9px;border:1px solid var(--borda);
+       background:var(--cartao);font:inherit;font-size:14px;font-weight:600;cursor:pointer;color:var(--texto)}
+  .btn.principal{background:var(--marca);border-color:var(--marca);color:#fff}
+  .btn.principal:hover{background:var(--marca-escura)}
+  .btn:disabled{opacity:.55;cursor:not-allowed}
+  .aviso{padding:12px 14px;border-radius:10px;font-size:14px;margin-bottom:14px;display:none}
+  .aviso.ok{display:block;background:var(--ok-fundo);color:var(--ok)}
+  .aviso.erro{display:block;background:var(--erro-fundo);color:var(--erro)}
+
+  .caixa{display:grid;grid-template-columns:360px 1fr;height:calc(100vh - 190px);min-height:480px;
+         background:var(--cartao);border:1px solid var(--borda);border-radius:12px;overflow:hidden}
+  .lado{border-right:1px solid var(--borda);display:flex;flex-direction:column;min-height:0}
+  .filtros{padding:12px;border-bottom:1px solid var(--borda);display:flex;flex-direction:column;gap:8px}
+  .abas{display:flex;gap:4px}
+  .abas button{flex:1;border:0;background:none;padding:7px 4px;border-radius:7px;font:inherit;font-size:13px;font-weight:600;color:var(--suave);cursor:pointer}
+  .abas button.on{background:var(--marca-clara);color:var(--marca)}
+  .abas b{font-weight:700;margin-left:3px}
+  .filtros .linha{display:flex;gap:6px}
+  select,input[type=search]{font:inherit;font-size:14px;padding:8px 10px;border:1px solid var(--borda);border-radius:8px;background:#fff;color:var(--texto);min-width:0}
+  input[type=search]{flex:1}
+  .lista{overflow-y:auto;flex:1}
+  .item{display:flex;gap:10px;padding:12px;border-bottom:1px solid var(--borda);cursor:pointer;width:100%;text-align:left;background:none;border-left:3px solid transparent;font:inherit;color:inherit}
+  .item:hover{background:#f9fafb}
+  .item.sel{background:var(--marca-clara);border-left-color:var(--marca)}
+  .av{width:38px;height:38px;border-radius:50%;background:#dfe7ea;color:#33454f;display:grid;place-items:center;font-weight:700;font-size:15px;flex:none;text-transform:uppercase}
+  .item .meio{flex:1;min-width:0}
+  .item .l1{display:flex;align-items:center;gap:6px}
+  .item .nome{font-weight:600;font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .item .hora{margin-left:auto;font-size:12px;color:var(--suave);white-space:nowrap}
+  .item .prev{font-size:13px;color:var(--suave);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-top:2px}
+  .item.nao-lida .nome,.item.nao-lida .prev{color:var(--texto);font-weight:700}
+  .ponto{width:8px;height:8px;border-radius:50%;background:var(--marca);flex:none}
+  .etq{font-size:10.5px;font-weight:700;padding:1px 6px;border-radius:999px;background:#f2f4f7;color:#475467;white-space:nowrap}
+  .etq.dm{background:#fdf2fa;color:#c11574}
+
+  .conversa{display:flex;flex-direction:column;min-height:0}
+  .conv-topo{padding:12px 16px;border-bottom:1px solid var(--borda);display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+  .conv-topo .nome{font-weight:700}
+  .conv-topo .det{font-size:13px;color:var(--suave)}
+  .conv-topo a{color:var(--marca);font-size:13px}
+  .voltar{display:none;border:0;background:none;font-size:20px;cursor:pointer;color:var(--suave);padding:0 6px 0 0}
+  .msgs{flex:1;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:8px;background:#fafbfc}
+  .bolha{max-width:72%;padding:9px 12px;border-radius:14px;font-size:14px;line-height:1.4;white-space:pre-wrap;word-wrap:break-word}
+  .bolha.deles{background:#fff;border:1px solid var(--borda);align-self:flex-start;border-bottom-left-radius:4px}
+  .bolha.minha{background:var(--marca);color:#fff;align-self:flex-end;border-bottom-right-radius:4px}
+  .bolha small{display:block;font-size:11px;opacity:.7;margin-top:3px}
+  .responder{border-top:1px solid var(--borda);padding:12px;display:flex;flex-direction:column;gap:8px}
+  .responder textarea{width:100%;font:inherit;font-size:14px;padding:10px 12px;border:1px solid var(--borda);border-radius:9px;resize:vertical;min-height:64px}
+  .responder textarea:focus{outline:2px solid var(--marca);outline-offset:-1px;border-color:transparent}
+  .responder .l{display:flex;align-items:center;gap:8px}
+  .responder .dica{font-size:12px;color:var(--suave);flex:1}
+  .vazio{color:var(--suave);font-size:14px;padding:30px 16px;text-align:center}
+  .vazio-grande{margin:auto;color:var(--suave);font-size:14px;text-align:center;padding:24px}
+  footer{text-align:center;font-size:12px;color:var(--suave);padding:0 16px 24px}
+
+  @media (max-width:900px){
+    .topo{flex-wrap:wrap} nav{order:3;flex-basis:100%;margin-left:0} .sair{margin-left:auto}
+    .caixa{grid-template-columns:1fr;height:calc(100vh - 230px)}
+    .caixa.aberta .lado{display:none}
+    .caixa:not(.aberta) .conversa{display:none}
+    .voltar{display:block}
+    .bolha{max-width:88%}
+  }
+</style>
+</head>
+<body>
+<header>
+  <div class="topo">
+    <div class="logo"><span>C</span>Clic Redes</div>
+    <nav>
+      <a href="planejamento.html">Planejamento</a>
+      <a href="metricas.html">Métricas</a>
+      <a class="ativo" href="caixa.html">Caixa de entrada</a>
+      <a href="contas.html">Contas</a>
+    </nav>
+    <button class="sair" id="sair">Sair</button>
+  </div>
+</header>
+
+<main>
+  <div class="barra">
+    <h1>Caixa de entrada</h1>
+    <span class="espaco"></span>
+    <span class="atualizado">Busca automática a cada 10 minutos</span>
+    <button class="btn" id="sincronizar">Sincronizar agora</button>
+  </div>
+  <div class="aviso" id="aviso"></div>
+
+  <div class="caixa" id="caixa">
+    <aside class="lado">
+      <div class="filtros">
+        <div class="abas" id="abas">
+          <button data-f="abertas" class="on">Não resolvidas<b id="nAbertas"></b></button>
+          <button data-f="naolidas">Não lidas<b id="nNaoLidas"></b></button>
+          <button data-f="todas">Todas</button>
+        </div>
+        <div class="linha">
+          <select id="tipo" aria-label="Tipo">
+            <option value="">Tudo</option>
+            <option value="mensagem">Mensagens</option>
+            <option value="comentario">Comentários</option>
+          </select>
+          <input type="search" id="busca" placeholder="Buscar @ ou texto">
+        </div>
+      </div>
+      <div class="lista" id="lista"><div class="vazio">Carregando...</div></div>
+    </aside>
+
+    <section class="conversa" id="conversa">
+      <div class="vazio-grande" id="nada">Escolha uma conversa à esquerda.</div>
+      <div id="aberta" hidden style="display:flex;flex-direction:column;min-height:0;flex:1">
+        <div class="conv-topo">
+          <button class="voltar" id="voltar" aria-label="Voltar">‹</button>
+          <div class="av" id="convAv"></div>
+          <div>
+            <div class="nome" id="convNome"></div>
+            <div class="det" id="convDet"></div>
+          </div>
+          <span class="espaco"></span>
+          <button class="btn" id="resolver">Marcar como resolvida</button>
+        </div>
+        <div class="msgs" id="msgs"></div>
+        <div class="responder">
+          <textarea id="resposta" placeholder="Escreva sua resposta..." maxlength="1000"></textarea>
+          <div class="l">
+            <span class="dica" id="dica"></span>
+            <button class="btn principal" id="enviar">Enviar</button>
+          </div>
+        </div>
+      </div>
+    </section>
+  </div>
+</main>
+<footer>Clic Redes · caixa.html v1.0</footer>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+  const SUPABASE_URL = "https://ochesgabptfapmogxmvv.supabase.co";
+  const SUPABASE_KEY = "sb_publishable_J06qsVfOBpm4LdMu-hmkiQ_LO7TIyfE";
+  const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+  const $ = (id) => document.getElementById(id);
+  const esc = (t) => String(t ?? "").replace(/[&<>"']/g, (c) =>
+    ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+
+  let contas = [];
+  let conversas = [];
+  let previas = {};
+  let linksPosts = {};
+  let filtro = "abertas";
+  let atual = null;
+
+  function mostrarAviso(t, tipo) {
+    const a = $("aviso"); a.textContent = t; a.className = "aviso " + tipo;
+    if (tipo === "ok") setTimeout(() => (a.className = "aviso"), 5000);
+  }
+
+  function quando(iso) {
+    if (!iso) return "";
+    const d = new Date(iso), hoje = new Date();
+    if (d.toDateString() === hoje.toDateString()) return d.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
+    const ontem = new Date(Date.now() - 86400000);
+    if (d.toDateString() === ontem.toDateString()) return "ontem";
+    return d.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" });
+  }
+
+  async function iniciar() {
+    const { data } = await sb.auth.getSession();
+    if (!data.session) { location.href = "index.html"; return; }
+    const { data: marcas } = await sb.from("marcas").select("id").order("criado_em").limit(1);
+    if (!marcas?.length) { location.href = "contas.html"; return; }
+    const { data: cs } = await sb.from("contas_redes")
+      .select("id, rede, usuario").eq("marca_id", marcas[0].id).eq("ativo", true);
+    contas = cs || [];
+    if (!contas.length) {
+      $("lista").innerHTML = '<div class="vazio">Conecte uma conta em <a href="contas.html">Contas</a>.</div>';
+      $("sincronizar").disabled = true;
+      return;
+    }
+    await carregar();
+  }
+
+  async function carregar() {
+    const ids = contas.map((c) => c.id);
+    const { data, error } = await sb.from("conversas")
+      .select("id, conta_id, tipo, id_na_rede, autor_nome, autor_id, post_id_na_rede, ultima_mensagem_em, lida, resolvida")
+      .in("conta_id", ids).order("ultima_mensagem_em", { ascending: false }).limit(300);
+    if (error) { mostrarAviso("Erro ao carregar a caixa de entrada.", "erro"); return; }
+    conversas = data || [];
+
+    // Previa: ultima mensagem de cada conversa
+    previas = {};
+    if (conversas.length) {
+      const { data: ms } = await sb.from("mensagens")
+        .select("conversa_id, texto, de_mim, enviada_em")
+        .in("conversa_id", conversas.map((c) => c.id))
+        .order("enviada_em", { ascending: false }).limit(1000);
+      for (const m of ms || []) if (!previas[m.conversa_id]) previas[m.conversa_id] = m;
+    }
+
+    // Links dos posts comentados
+    const postIds = [...new Set(conversas.map((c) => c.post_id_na_rede).filter(Boolean))];
+    if (postIds.length) {
+      const { data: ps } = await sb.from("metricas_posts").select("id_na_rede, link").in("id_na_rede", postIds);
+      linksPosts = Object.fromEntries((ps || []).map((p) => [p.id_na_rede, p.link]));
+    }
+    desenharLista();
+    if (atual) {
+      const c = conversas.find((x) => x.id === atual.id);
+      if (c) abrir(c, false);
+    }
+  }
+
+  function filtradas() {
+    const tipo = $("tipo").value;
+    const busca = $("busca").value.trim().toLowerCase();
+    return conversas.filter((c) => {
+      if (filtro === "abertas" && c.resolvida) return false;
+      if (filtro === "naolidas" && c.lida) return false;
+      if (tipo && c.tipo !== tipo) return false;
+      if (busca) {
+        const alvo = ((c.autor_nome || "") + " " + (previas[c.id]?.texto || "")).toLowerCase();
+        if (!alvo.includes(busca)) return false;
+      }
+      return true;
+    });
+  }
+
+  function desenharLista() {
+    const abertas = conversas.filter((c) => !c.resolvida).length;
+    const naoLidas = conversas.filter((c) => !c.lida).length;
+    $("nAbertas").textContent = abertas ? ` ${abertas}` : "";
+    $("nNaoLidas").textContent = naoLidas ? ` ${naoLidas}` : "";
+
+    const lista = filtradas();
+    if (!lista.length) {
+      $("lista").innerHTML = `<div class="vazio">${conversas.length ? "Nada por aqui com esse filtro." : "Nenhuma conversa ainda. Clique em \"Sincronizar agora\"."}</div>`;
+      return;
+    }
+    $("lista").innerHTML = lista.map((c) => {
+      const p = previas[c.id];
+      const prev = p ? (p.de_mim ? "Você: " : "") + p.texto : "";
+      const nome = c.autor_nome || "sem nome";
+      return `<button class="item ${c.lida ? "" : "nao-lida"} ${atual?.id === c.id ? "sel" : ""}" data-id="${c.id}">
+        <div class="av">${esc(nome[0] || "?")}</div>
+        <div class="meio">
+          <div class="l1">${c.lida ? "" : '<span class="ponto"></span>'}<span class="nome">@${esc(nome)}</span>
+            <span class="etq ${c.tipo === "mensagem" ? "dm" : ""}">${c.tipo === "mensagem" ? "Direct" : "Comentário"}</span>
+            <span class="hora">${quando(c.ultima_mensagem_em)}</span></div>
+          <div class="prev">${esc(prev)}</div>
+        </div>
+      </button>`;
+    }).join("");
+    $("lista").querySelectorAll(".item").forEach((b) =>
+      b.addEventListener("click", () => abrir(conversas.find((c) => c.id === b.dataset.id), true)));
+  }
+
+  async function abrir(c, marcarLida) {
+    atual = c;
+    $("caixa").classList.add("aberta");
+    $("nada").hidden = true;
+    $("aberta").hidden = false;
+    const conta = contas.find((x) => x.id === c.conta_id);
+    const nome = c.autor_nome || "sem nome";
+    $("convAv").textContent = nome[0] || "?";
+    $("convNome").textContent = "@" + nome;
+    const link = linksPosts[c.post_id_na_rede];
+    $("convDet").innerHTML = c.tipo === "mensagem"
+      ? `Direct · para @${esc(conta?.usuario)}`
+      : `Comentário · @${esc(conta?.usuario)}${link ? ` · <a href="${esc(link)}" target="_blank" rel="noopener">ver post</a>` : ""}`;
+    $("resolver").textContent = c.resolvida ? "Reabrir" : "Marcar como resolvida";
+    $("dica").textContent = c.tipo === "mensagem"
+      ? "Pelo Instagram, só dá para responder até 24h após a última mensagem da pessoa."
+      : "A resposta aparece embaixo do comentário, no post.";
+
+    $("msgs").innerHTML = '<div class="vazio">Carregando...</div>';
+    const { data: ms } = await sb.from("mensagens")
+      .select("texto, de_mim, enviada_em").eq("conversa_id", c.id).order("enviada_em");
+    $("msgs").innerHTML = (ms || []).map((m) => `<div class="bolha ${m.de_mim ? "minha" : "deles"}">${esc(m.texto)}<small>${new Date(m.enviada_em).toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })}</small></div>`).join("")
+      || '<div class="vazio">Sem mensagens.</div>';
+    $("msgs").scrollTop = $("msgs").scrollHeight;
+
+    if (marcarLida && !c.lida) {
+      c.lida = true;
+      await sb.from("conversas").update({ lida: true }).eq("id", c.id);
+    }
+    desenharLista();
+  }
+
+  async function enviar() {
+    const texto = $("resposta").value.trim();
+    if (!texto || !atual) return;
+    const btn = $("enviar");
+    btn.disabled = true; btn.textContent = "Enviando...";
+    const { data, error } = await sb.functions.invoke("caixa-entrada", {
+      body: { acao: "responder", conversa_id: atual.id, texto },
+    });
+    btn.disabled = false; btn.textContent = "Enviar";
+    if (error || data?.erro) {
+      let msg = data?.erro;
+      if (!msg && error?.context) { try { msg = (await error.context.json()).erro; } catch (_) { /* sem corpo */ } }
+      mostrarAviso(msg || "Não foi possível enviar.", "erro");
+      return;
+    }
+    $("resposta").value = "";
+    mostrarAviso("Resposta enviada.", "ok");
+    await carregar();
+  }
+
+  async function sincronizar() {
+    const btn = $("sincronizar");
+    btn.disabled = true; btn.textContent = "Buscando...";
+    const { data, error } = await sb.functions.invoke("caixa-entrada", { body: { acao: "sincronizar" } });
+    btn.disabled = false; btn.textContent = "Sincronizar agora";
+    const falhas = (data?.resultado || []).filter((r) => r.erro || r.erro_mensagens || r.erro_comentarios);
+    if (error) mostrarAviso("Não foi possível sincronizar.", "erro");
+    else if (falhas.length) mostrarAviso("Parte não sincronizou: " + falhas.map((f) =>
+      `@${f.conta}: ${f.erro || f.erro_mensagens || f.erro_comentarios}`).join(" · "), "erro");
+    else mostrarAviso("Caixa de entrada atualizada.", "ok");
+    await carregar();
+  }
+
+  // ---------- Eventos ----------
+  $("abas").addEventListener("click", (e) => {
+    const b = e.target.closest("button"); if (!b) return;
+    filtro = b.dataset.f;
+    document.querySelectorAll("#abas button").forEach((x) => x.classList.toggle("on", x === b));
+    desenharLista();
+  });
+  $("tipo").addEventListener("change", desenharLista);
+  $("busca").addEventListener("input", desenharLista);
+  $("enviar").addEventListener("click", enviar);
+  $("resposta").addEventListener("keydown", (e) => {
+    if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) enviar();
+  });
+  $("resolver").addEventListener("click", async () => {
+    if (!atual) return;
+    const novo = !atual.resolvida;
+    const { error } = await sb.from("conversas").update({ resolvida: novo, lida: true }).eq("id", atual.id);
+    if (error) { mostrarAviso("Não foi possível atualizar.", "erro"); return; }
+    atual.resolvida = novo; atual.lida = true;
+    $("resolver").textContent = novo ? "Reabrir" : "Marcar como resolvida";
+    desenharLista();
+  });
+  $("voltar").addEventListener("click", () => {
+    $("caixa").classList.remove("aberta");
+    atual = null;
+    desenharLista();
+  });
+  $("sincronizar").addEventListener("click", sincronizar);
+  $("sair").addEventListener("click", async () => { await sb.auth.signOut(); location.href = "index.html"; });
+
+  iniciar();
+</script>
+</body>
+</html>
