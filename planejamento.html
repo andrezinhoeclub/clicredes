@@ -1,0 +1,723 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Planejamento · Clic Redes</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --fundo:#f4f6f8; --cartao:#ffffff; --texto:#14212b; --suave:#5b6b78;
+    --borda:#dde3e8; --marca:#0f766e; --marca-escura:#0b5c56; --marca-clara:#e6f4f2;
+    --ok:#067647; --ok-fundo:#ecfdf3; --erro:#b42318; --erro-fundo:#fef3f2;
+    --aviso:#b54708; --aviso-fundo:#fffaeb; --rascunho:#475467; --rascunho-fundo:#f2f4f7;
+    --agendado:#175cd3; --agendado-fundo:#eff8ff;
+  }
+  *{box-sizing:border-box}
+  [hidden]{display:none !important}
+  body{margin:0;background:var(--fundo);color:var(--texto);font-family:Inter,system-ui,sans-serif}
+  header{background:var(--cartao);border-bottom:1px solid var(--borda)}
+  .topo{max-width:1180px;margin:0 auto;padding:14px 16px;display:flex;align-items:center;gap:16px}
+  .logo{display:flex;align-items:center;gap:9px;font-weight:700;font-size:18px}
+  .logo span{width:30px;height:30px;border-radius:8px;background:var(--marca);color:#fff;display:grid;place-items:center;font-size:15px}
+  nav{display:flex;gap:4px;margin-left:12px;flex:1;overflow-x:auto}
+  nav a{padding:7px 11px;border-radius:7px;color:var(--suave);text-decoration:none;font-size:14px;font-weight:500;white-space:nowrap}
+  nav a.ativo{background:var(--marca-clara);color:var(--marca)}
+  nav a.breve{opacity:.45;pointer-events:none}
+  .sair{background:none;border:1px solid var(--borda);border-radius:7px;padding:7px 11px;font:inherit;font-size:13px;cursor:pointer;color:var(--suave)}
+  main{max-width:1180px;margin:0 auto;padding:22px 16px 40px}
+
+  .barra{display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin-bottom:16px}
+  .barra h1{font-size:20px;margin:0 12px 0 0}
+  .grupo{display:inline-flex;border:1px solid var(--borda);border-radius:9px;overflow:hidden;background:var(--cartao)}
+  .grupo button{border:0;background:none;padding:8px 12px;font:inherit;font-size:14px;cursor:pointer;color:var(--texto)}
+  .grupo button+button{border-left:1px solid var(--borda)}
+  .grupo button.on{background:var(--marca-clara);color:var(--marca);font-weight:600}
+  .periodo{font-weight:600;font-size:14px;min-width:190px}
+  .espaco{flex:1}
+  .btn{display:inline-flex;align-items:center;gap:6px;padding:9px 14px;border-radius:9px;border:1px solid var(--borda);
+       background:var(--cartao);font:inherit;font-size:14px;font-weight:600;cursor:pointer;color:var(--texto)}
+  .btn.principal{background:var(--marca);border-color:var(--marca);color:#fff}
+  .btn.principal:hover{background:var(--marca-escura)}
+  .btn.perigo{color:var(--erro)}
+  .btn:disabled{opacity:.55;cursor:not-allowed}
+  .aviso{padding:12px 14px;border-radius:10px;font-size:14px;margin-bottom:14px;display:none}
+  .aviso.ok{display:block;background:var(--ok-fundo);color:var(--ok)}
+  .aviso.erro{display:block;background:var(--erro-fundo);color:var(--erro)}
+
+  /* Semana */
+  .semana{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:8px}
+  .dia{background:var(--cartao);border:1px solid var(--borda);border-radius:10px;min-height:340px;display:flex;flex-direction:column}
+  .dia.hoje{border-color:var(--marca);box-shadow:inset 0 3px 0 var(--marca)}
+  .dia-topo{padding:10px 10px 8px;border-bottom:1px solid var(--borda);display:flex;justify-content:space-between;align-items:baseline}
+  .dia-topo b{font-size:13px}
+  .dia-topo span{font-size:12px;color:var(--suave)}
+  .dia-posts{padding:8px;display:flex;flex-direction:column;gap:6px;flex:1}
+  .add-dia{margin:0 8px 8px;border:1px dashed var(--borda);background:none;border-radius:8px;padding:6px;font:inherit;font-size:12px;color:var(--suave);cursor:pointer}
+  .add-dia:hover{border-color:var(--marca);color:var(--marca)}
+  .card{border:1px solid var(--borda);border-radius:8px;padding:7px 8px;cursor:pointer;background:var(--cartao);font-size:12px;text-align:left;font-family:inherit;color:inherit;width:100%}
+  .card:hover{border-color:var(--marca)}
+  .card .linha{display:flex;flex-wrap:wrap;align-items:center;gap:4px 6px;margin-bottom:4px}
+  .card .hora{font-weight:700}
+  .card .txt{color:var(--suave);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+  .card img{width:100%;height:64px;object-fit:cover;border-radius:5px;margin-bottom:5px;background:#e9edf0}
+  .st{font-size:10px;font-weight:700;padding:2px 6px;border-radius:999px;text-transform:uppercase;letter-spacing:.02em}
+  .card .st{margin-left:auto}
+  .st.rascunho{background:var(--rascunho-fundo);color:var(--rascunho)}
+  .st.agendado{background:var(--agendado-fundo);color:var(--agendado)}
+  .st.publicando{background:var(--aviso-fundo);color:var(--aviso)}
+  .st.publicado{background:var(--ok-fundo);color:var(--ok)}
+  .st.erro{background:var(--erro-fundo);color:var(--erro)}
+  .rede-ic{width:16px;height:16px;border-radius:4px;display:inline-grid;place-items:center;font-size:9px;font-weight:700;color:#fff;flex:none}
+  .rede-ic.instagram{background:#d6249f}
+  .rede-ic.facebook{background:#1877f2}
+  .rede-ic.youtube{background:#ff0000}
+  .rede-ic.tiktok{background:#111}
+
+  /* Lista */
+  .lista{background:var(--cartao);border:1px solid var(--borda);border-radius:10px;overflow:hidden}
+  .lista table{width:100%;border-collapse:collapse;font-size:14px}
+  .lista th{text-align:left;font-size:12px;color:var(--suave);font-weight:600;padding:10px 12px;border-bottom:1px solid var(--borda)}
+  .lista td{padding:10px 12px;border-bottom:1px solid var(--borda);vertical-align:top}
+  .lista tr:last-child td{border-bottom:0}
+  .lista tr.clicavel{cursor:pointer}
+  .lista tr.clicavel:hover{background:#f9fafb}
+  .lista .txt{max-width:460px;color:var(--suave);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .vazio{color:var(--suave);font-size:14px;padding:22px;text-align:center}
+
+  /* Editor */
+  .fundo-modal{position:fixed;inset:0;background:rgba(16,24,40,.45);display:none;align-items:flex-start;justify-content:center;padding:28px 12px;overflow-y:auto;z-index:20}
+  .fundo-modal.aberto{display:flex}
+  .modal{background:var(--cartao);border-radius:14px;width:100%;max-width:640px;padding:22px}
+  .modal-topo{display:flex;align-items:center;gap:10px;margin-bottom:16px}
+  .modal-topo h2{font-size:18px;margin:0;flex:1}
+  .fechar{border:0;background:none;font-size:22px;cursor:pointer;color:var(--suave);line-height:1}
+  .rotulo{font-size:13px;font-weight:600;margin:16px 0 8px;display:flex;justify-content:space-between;gap:10px}
+  .rotulo small{font-weight:500;color:var(--suave)}
+  .contas{display:flex;flex-direction:column;gap:8px}
+  .conta-op{display:flex;align-items:center;gap:10px;border:1px solid var(--borda);border-radius:9px;padding:8px 10px}
+  .conta-op img,.conta-op .sem-foto{width:30px;height:30px;border-radius:50%;object-fit:cover;background:#e9edf0}
+  .conta-op .nome{flex:1;font-size:14px;font-weight:600}
+  .conta-op select{font:inherit;font-size:13px;padding:5px 8px;border:1px solid var(--borda);border-radius:7px}
+  textarea,input[type=text],input[type=datetime-local]{width:100%;font:inherit;font-size:15px;padding:10px 12px;border:1px solid var(--borda);border-radius:9px;background:#fff;color:var(--texto)}
+  textarea{resize:vertical;min-height:130px;line-height:1.45}
+  textarea:focus,input:focus,select:focus{outline:2px solid var(--marca);outline-offset:-1px;border-color:transparent}
+  .contador{font-size:12px;color:var(--suave);text-align:right;margin-top:4px}
+  .contador.alto{color:var(--erro);font-weight:600}
+  .midias{display:flex;flex-wrap:wrap;gap:8px}
+  .midia{position:relative;width:86px;height:86px;border-radius:8px;overflow:hidden;background:#e9edf0;border:1px solid var(--borda)}
+  .midia img,.midia video{width:100%;height:100%;object-fit:cover}
+  .midia .x{position:absolute;top:3px;right:3px;width:22px;height:22px;border-radius:50%;border:0;background:rgba(0,0,0,.6);color:#fff;cursor:pointer;font-size:13px;line-height:22px;padding:0}
+  .midia .ord{position:absolute;left:4px;bottom:4px;background:rgba(0,0,0,.6);color:#fff;font-size:11px;border-radius:5px;padding:1px 5px}
+  .add-midia{width:86px;height:86px;border:1px dashed var(--borda);border-radius:8px;display:grid;place-items:center;cursor:pointer;color:var(--suave);font-size:12px;text-align:center;background:#fafbfc}
+  .add-midia:hover{border-color:var(--marca);color:var(--marca)}
+  .opcao{display:flex;align-items:center;gap:8px;font-size:14px;margin-top:10px}
+  .erro-form{color:var(--erro);font-size:14px;margin-top:14px;min-height:18px}
+  .acoes{display:flex;flex-wrap:wrap;gap:8px;margin-top:18px;align-items:center}
+  .acoes .espaco{flex:1}
+  .detalhe-redes{margin-top:10px;font-size:13px;color:var(--suave)}
+  .detalhe-redes div{margin-top:4px}
+  .detalhe-redes a{color:var(--marca)}
+  footer{text-align:center;font-size:12px;color:var(--suave);padding:0 16px 28px}
+
+  @media (max-width:900px){
+    .semana{grid-template-columns:1fr}
+    .dia{min-height:auto}
+    .topo{flex-wrap:wrap}
+    nav{order:3;flex-basis:100%;margin-left:0}
+    .sair{margin-left:auto}
+  }
+</style>
+</head>
+<body>
+<header>
+  <div class="topo">
+    <div class="logo"><span>C</span>Clic Redes</div>
+    <nav>
+      <a class="ativo" href="planejamento.html">Planejamento</a>
+      <a class="breve" href="#">Métricas</a>
+      <a class="breve" href="#">Caixa de entrada</a>
+      <a href="contas.html">Contas</a>
+    </nav>
+    <button class="sair" id="sair">Sair</button>
+  </div>
+</header>
+
+<main>
+  <div class="barra">
+    <h1>Planejamento</h1>
+    <div class="grupo" id="modo">
+      <button data-modo="semana" class="on">Semana</button>
+      <button data-modo="lista">Lista</button>
+    </div>
+    <div class="grupo">
+      <button id="ant" title="Semana anterior">‹</button>
+      <button id="hoje">Hoje</button>
+      <button id="prox" title="Próxima semana">›</button>
+    </div>
+    <span class="periodo" id="periodo"></span>
+    <span class="espaco"></span>
+    <button class="btn principal" id="novo">+ Criar post</button>
+  </div>
+  <div class="aviso" id="aviso"></div>
+  <div id="area"></div>
+</main>
+<footer>Clic Redes · planejamento.html v1.0 · horários de Brasília</footer>
+
+<!-- Editor de post -->
+<div class="fundo-modal" id="fundoModal">
+  <div class="modal" role="dialog" aria-labelledby="tituloModal">
+    <div class="modal-topo">
+      <h2 id="tituloModal">Criar post</h2>
+      <span class="st" id="statusModal" hidden></span>
+      <button class="fechar" id="fechar" aria-label="Fechar">×</button>
+    </div>
+
+    <div class="rotulo">Onde publicar <small id="dicaTipo"></small></div>
+    <div class="contas" id="contasOp"></div>
+
+    <div class="rotulo">Texto <small>legenda do post</small></div>
+    <textarea id="texto" placeholder="Escreva a legenda..."></textarea>
+    <div class="contador" id="contador">0 / 2.200 · 0 / 30 hashtags</div>
+
+    <div class="rotulo">Fotos e vídeos <small>JPG, PNG, MP4 ou MOV · até 50 MB cada</small></div>
+    <div class="midias" id="midias"></div>
+    <input type="file" id="arquivo" accept="image/jpeg,image/png,video/mp4,video/quicktime" multiple hidden>
+
+    <div class="rotulo">Primeiro comentário <small>opcional</small></div>
+    <input type="text" id="comentario" placeholder="Ex.: hashtags extras ou link">
+
+    <label class="opcao" id="opFeed"><input type="checkbox" id="mostrarFeed" checked> Mostrar o Reel também no feed</label>
+
+    <div class="rotulo">Data e hora</div>
+    <input type="datetime-local" id="quando">
+
+    <div class="rotulo">Observações internas <small>só você vê</small></div>
+    <input type="text" id="obs" placeholder="Ex.: conferir arte com o designer">
+
+    <div class="detalhe-redes" id="detalheRedes"></div>
+    <div class="erro-form" id="erroForm"></div>
+
+    <div class="acoes">
+      <button class="btn perigo" id="excluir" hidden>Excluir</button>
+      <span class="espaco"></span>
+      <button class="btn" id="salvarRascunho">Salvar rascunho</button>
+      <button class="btn principal" id="agendar">Agendar</button>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+  const SUPABASE_URL = "https://ochesgabptfapmogxmvv.supabase.co";
+  const SUPABASE_KEY = "sb_publishable_J06qsVfOBpm4LdMu-hmkiQ_LO7TIyfE";
+  const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+  const LIMITE_MB = 50;
+  const LIMITE_TEXTO = 2200;
+  const LIMITE_HASHTAGS = 30;
+  const DIAS = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
+  const ROTULO_STATUS = { rascunho: "Rascunho", agendado: "Agendado", publicando: "Publicando", publicado: "Publicado", erro: "Erro" };
+  const TIPOS = {
+    instagram: [["post", "Post"], ["reel", "Reel"], ["story", "Story"], ["carrossel", "Carrossel"]],
+    facebook: [["post", "Post"], ["reel", "Reel"], ["story", "Story"]],
+    youtube: [["short", "Short"], ["video", "Vídeo"]],
+    tiktok: [["video", "Vídeo"]],
+  };
+  const LETRA = { instagram: "IG", facebook: "f", youtube: "▶", tiktok: "♪" };
+
+  const $ = (id) => document.getElementById(id);
+  const esc = (t) => String(t ?? "").replace(/[&<>"']/g, (c) =>
+    ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+
+  let marca = null;
+  let contas = [];
+  let modo = "semana";
+  let inicioSemana = domingoDe(new Date());
+  let posts = [];
+  const urlsAssinadas = {};
+
+  // Estado do editor
+  let editando = null;      // post existente ou null
+  let midias = [];          // [{tipo, arquivo?, caminho?, previa}]
+  let midiasRemovidas = []; // caminhos no storage para apagar
+
+  // ---------- Datas ----------
+  function domingoDe(d) {
+    const x = new Date(d);
+    x.setHours(0, 0, 0, 0);
+    x.setDate(x.getDate() - x.getDay());
+    return x;
+  }
+  function addDias(d, n) { const x = new Date(d); x.setDate(x.getDate() + n); return x; }
+  function mesmoDia(a, b) { return a.toDateString() === b.toDateString(); }
+  function hhmm(d) { return d.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" }); }
+  function paraInput(d) {
+    const p = (n) => String(n).padStart(2, "0");
+    return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}T${p(d.getHours())}:${p(d.getMinutes())}`;
+  }
+
+  function mostrarAviso(texto, tipo) {
+    const a = $("aviso");
+    a.textContent = texto; a.className = "aviso " + tipo;
+    if (tipo === "ok") setTimeout(() => { a.className = "aviso"; }, 5000);
+  }
+
+  // ---------- Carregar ----------
+  async function iniciar() {
+    const { data } = await sb.auth.getSession();
+    if (!data.session) { location.href = "index.html"; return; }
+
+    const { data: marcas } = await sb.from("marcas").select("id, nome").order("criado_em").limit(1);
+    if (!marcas || !marcas.length) { location.href = "contas.html"; return; }
+    marca = marcas[0];
+
+    const { data: cs } = await sb.from("contas_redes")
+      .select("id, rede, nome, usuario, foto_url, ativo")
+      .eq("marca_id", marca.id).eq("ativo", true).order("criado_em");
+    contas = cs || [];
+
+    await carregarPosts();
+  }
+
+  async function carregarPosts() {
+    let consulta = sb.from("posts")
+      .select("id, texto, observacoes, agendado_para, status, post_redes(id, conta_id, tipo, primeiro_comentario, mostrar_no_feed, status, link, erro), post_midias(id, caminho, tipo, ordem)")
+      .eq("marca_id", marca.id)
+      .is("excluido_em", null);
+
+    if (modo === "semana") {
+      consulta = consulta
+        .gte("agendado_para", inicioSemana.toISOString())
+        .lt("agendado_para", addDias(inicioSemana, 7).toISOString())
+        .order("agendado_para");
+    } else {
+      consulta = consulta.order("agendado_para", { ascending: false, nullsFirst: true }).limit(200);
+    }
+
+    const { data, error } = await consulta;
+    if (error) { mostrarAviso("Erro ao carregar os posts. Atualize a página.", "erro"); return; }
+    posts = data || [];
+    await assinarMiniaturas();
+    desenhar();
+  }
+
+  async function assinarMiniaturas() {
+    const caminhos = [];
+    for (const p of posts) {
+      const m = [...(p.post_midias || [])].sort((a, b) => a.ordem - b.ordem)[0];
+      if (m && m.tipo === "imagem" && !urlsAssinadas[m.caminho]) caminhos.push(m.caminho);
+    }
+    if (!caminhos.length) return;
+    const { data } = await sb.storage.from("midias").createSignedUrls(caminhos, 3600);
+    (data || []).forEach((d) => { if (d.signedUrl) urlsAssinadas[d.path] = d.signedUrl; });
+  }
+
+  // ---------- Desenhar ----------
+  function iconesRedes(p) {
+    return (p.post_redes || []).map((pr) => {
+      const c = contas.find((x) => x.id === pr.conta_id);
+      const rede = c ? c.rede : "instagram";
+      return `<span class="rede-ic ${rede}" title="${esc(c ? "@" + c.usuario : "")} · ${esc(pr.tipo)}">${LETRA[rede]}</span>`;
+    }).join("");
+  }
+
+  function miniatura(p) {
+    const m = [...(p.post_midias || [])].sort((a, b) => a.ordem - b.ordem)[0];
+    if (!m) return "";
+    if (m.tipo === "imagem" && urlsAssinadas[m.caminho]) return `<img src="${urlsAssinadas[m.caminho]}" alt="">`;
+    return "";
+  }
+
+  function desenhar() {
+    const fim = addDias(inicioSemana, 6);
+    const fmt = (d) => d.toLocaleDateString("pt-BR", { day: "2-digit", month: "short" });
+    $("periodo").textContent = modo === "semana" ? `${fmt(inicioSemana)} – ${fmt(fim)}` : "Todos os posts";
+    document.querySelectorAll("#ant,#hoje,#prox").forEach((b) => (b.disabled = modo !== "semana"));
+
+    if (modo === "semana") desenharSemana(); else desenharLista();
+  }
+
+  function desenharSemana() {
+    const hoje = new Date();
+    let html = '<div class="semana">';
+    for (let i = 0; i < 7; i++) {
+      const dia = addDias(inicioSemana, i);
+      const doDia = posts.filter((p) => p.agendado_para && mesmoDia(new Date(p.agendado_para), dia));
+      html += `<section class="dia${mesmoDia(dia, hoje) ? " hoje" : ""}">
+        <div class="dia-topo"><b>${DIAS[i]}</b><span>${dia.getDate()}/${dia.getMonth() + 1}</span></div>
+        <div class="dia-posts">
+          ${doDia.map((p) => `
+            <button class="card" data-id="${p.id}">
+              ${miniatura(p)}
+              <div class="linha"><span class="hora">${hhmm(new Date(p.agendado_para))}</span>${iconesRedes(p)}<span class="st ${p.status}">${ROTULO_STATUS[p.status]}</span></div>
+              <div class="txt">${esc(p.texto) || "<i>sem texto</i>"}</div>
+            </button>`).join("")}
+        </div>
+        <button class="add-dia" data-dia="${dia.toISOString()}">+ post</button>
+      </section>`;
+    }
+    html += "</div>";
+    $("area").innerHTML = html;
+
+    $("area").querySelectorAll(".card").forEach((b) =>
+      b.addEventListener("click", () => abrirEditor(posts.find((p) => p.id === b.dataset.id))));
+    $("area").querySelectorAll(".add-dia").forEach((b) =>
+      b.addEventListener("click", () => {
+        const d = new Date(b.dataset.dia);
+        d.setHours(18, 0, 0, 0);
+        abrirEditor(null, d);
+      }));
+  }
+
+  function desenharLista() {
+    if (!posts.length) {
+      $("area").innerHTML = '<div class="lista"><div class="vazio">Nenhum post ainda. Clique em "+ Criar post".</div></div>';
+      return;
+    }
+    $("area").innerHTML = `<div class="lista"><table>
+      <thead><tr><th>Data</th><th>Texto</th><th>Redes</th><th>Status</th></tr></thead>
+      <tbody>${posts.map((p) => `
+        <tr class="clicavel" data-id="${p.id}">
+          <td>${p.agendado_para ? new Date(p.agendado_para).toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", year: "2-digit", hour: "2-digit", minute: "2-digit" }) : "—"}</td>
+          <td><div class="txt">${esc(p.texto) || "<i>sem texto</i>"}</div></td>
+          <td>${iconesRedes(p)}</td>
+          <td><span class="st ${p.status}">${ROTULO_STATUS[p.status]}</span></td>
+        </tr>`).join("")}
+      </tbody></table></div>`;
+    $("area").querySelectorAll("tr.clicavel").forEach((tr) =>
+      tr.addEventListener("click", () => abrirEditor(posts.find((p) => p.id === tr.dataset.id))));
+  }
+
+  // ---------- Editor ----------
+  function abrirEditor(post, dataSugerida) {
+    if (!contas.length) {
+      mostrarAviso("Conecte uma conta em Contas antes de criar posts.", "erro");
+      return;
+    }
+    editando = post || null;
+    midias = [];
+    midiasRemovidas = [];
+    $("erroForm").textContent = "";
+
+    const bloqueado = post && (post.status === "publicado" || post.status === "publicando");
+    $("tituloModal").textContent = !post ? "Criar post" : bloqueado ? "Post publicado" : "Editar post";
+    const st = $("statusModal");
+    if (post) { st.hidden = false; st.className = "st " + post.status; st.textContent = ROTULO_STATUS[post.status]; }
+    else st.hidden = true;
+
+    // Contas
+    const escolhidas = {};
+    (post?.post_redes || []).forEach((pr) => (escolhidas[pr.conta_id] = pr));
+    $("contasOp").innerHTML = contas.map((c) => {
+      const pr = escolhidas[c.id];
+      const marcado = post ? !!pr : contas.length === 1;
+      const tipoAtual = pr?.tipo || TIPOS[c.rede][0][0];
+      const foto = c.foto_url ? `<img src="${esc(c.foto_url)}" alt="">` : '<div class="sem-foto"></div>';
+      return `<label class="conta-op">
+        <input type="checkbox" class="ck-conta" value="${c.id}" ${marcado ? "checked" : ""}>
+        ${foto}<span class="nome">@${esc(c.usuario)} <span class="rede-ic ${c.rede}">${LETRA[c.rede]}</span></span>
+        <select class="tipo-conta" data-conta="${c.id}">
+          ${TIPOS[c.rede].map(([v, t]) => `<option value="${v}" ${v === tipoAtual ? "selected" : ""}>${t}</option>`).join("")}
+        </select>
+      </label>`;
+    }).join("");
+
+    const pr0 = (post?.post_redes || [])[0];
+    $("texto").value = post?.texto || "";
+    $("comentario").value = pr0?.primeiro_comentario || "";
+    $("mostrarFeed").checked = pr0 ? pr0.mostrar_no_feed : true;
+    $("obs").value = post?.observacoes || "";
+    const quando = post?.agendado_para ? new Date(post.agendado_para)
+      : dataSugerida || proximaHoraCheia();
+    $("quando").value = paraInput(quando);
+
+    // Mídias existentes
+    const existentes = [...(post?.post_midias || [])].sort((a, b) => a.ordem - b.ordem);
+    midias = existentes.map((m) => ({ tipo: m.tipo, caminho: m.caminho, previa: urlsAssinadas[m.caminho] || null }));
+    carregarPreviasExistentes();
+
+    // Detalhe por rede (link ou erro)
+    $("detalheRedes").innerHTML = (post?.post_redes || []).map((pr) => {
+      const c = contas.find((x) => x.id === pr.conta_id);
+      if (pr.link) return `<div>@${esc(c?.usuario)}: <a href="${esc(pr.link)}" target="_blank" rel="noopener">ver post publicado</a></div>`;
+      if (pr.erro) return `<div style="color:var(--erro)">@${esc(c?.usuario)}: ${esc(pr.erro)}</div>`;
+      return "";
+    }).join("");
+
+    // Bloqueia edição de publicado
+    document.querySelectorAll("#fundoModal input, #fundoModal textarea, #fundoModal select")
+      .forEach((el) => (el.disabled = !!bloqueado));
+    $("salvarRascunho").hidden = !!bloqueado;
+    $("agendar").hidden = !!bloqueado;
+    $("excluir").hidden = !post;
+    $("agendar").textContent = post && post.status === "agendado" ? "Salvar e manter agendado" : "Agendar";
+
+    atualizarContador();
+    atualizarDicas();
+    desenharMidias();
+    $("fundoModal").classList.add("aberto");
+  }
+
+  function proximaHoraCheia() {
+    const d = new Date();
+    d.setMinutes(0, 0, 0);
+    d.setHours(d.getHours() + 1);
+    return d;
+  }
+
+  async function carregarPreviasExistentes() {
+    const faltando = midias.filter((m) => m.caminho && !m.previa);
+    if (!faltando.length) return;
+    const { data } = await sb.storage.from("midias").createSignedUrls(faltando.map((m) => m.caminho), 3600);
+    (data || []).forEach((d) => {
+      const m = midias.find((x) => x.caminho === d.path);
+      if (m && d.signedUrl) { m.previa = d.signedUrl; urlsAssinadas[d.path] = d.signedUrl; }
+    });
+    desenharMidias();
+  }
+
+  function fecharEditor() {
+    midias.forEach((m) => { if (m.arquivo && m.previa) URL.revokeObjectURL(m.previa); });
+    $("fundoModal").classList.remove("aberto");
+  }
+
+  function atualizarContador() {
+    const t = $("texto").value;
+    const hashtags = (t.match(/(^|\s)#[\p{L}\p{N}_]+/gu) || []).length;
+    const el = $("contador");
+    el.textContent = `${t.length.toLocaleString("pt-BR")} / 2.200 · ${hashtags} / 30 hashtags`;
+    el.classList.toggle("alto", t.length > LIMITE_TEXTO || hashtags > LIMITE_HASHTAGS);
+  }
+
+  function tiposEscolhidos() {
+    return [...document.querySelectorAll(".ck-conta:checked")].map((ck) => ({
+      conta_id: ck.value,
+      tipo: document.querySelector(`.tipo-conta[data-conta="${ck.value}"]`).value,
+    }));
+  }
+
+  function atualizarDicas() {
+    const tipos = tiposEscolhidos().map((t) => t.tipo);
+    $("opFeed").style.display = tipos.includes("reel") ? "flex" : "none";
+    let dica = "";
+    if (tipos.includes("reel")) dica = "Reel: 1 vídeo";
+    else if (tipos.includes("carrossel")) dica = "Carrossel: 2 a 20 fotos/vídeos";
+    else if (tipos.includes("story")) dica = "Story: 1 foto ou vídeo";
+    else if (tipos.includes("post")) dica = "Post: 1 foto ou vídeo";
+    $("dicaTipo").textContent = dica;
+  }
+
+  function desenharMidias() {
+    const html = midias.map((m, i) => {
+      const conteudo = !m.previa ? "" : m.tipo === "video"
+        ? `<video src="${m.previa}" muted playsinline></video>`
+        : `<img src="${m.previa}" alt="">`;
+      return `<div class="midia">${conteudo}<span class="ord">${i + 1}${m.tipo === "video" ? " ▶" : ""}</span>
+        <button class="x" data-i="${i}" title="Remover" ${$("texto").disabled ? "hidden" : ""}>×</button></div>`;
+    }).join("");
+    const podeAdd = !$("texto").disabled;
+    $("midias").innerHTML = html + (podeAdd ? '<label class="add-midia" for="arquivo">+ Adicionar</label>' : "");
+    $("midias").querySelectorAll(".x").forEach((b) => b.addEventListener("click", (e) => {
+      e.preventDefault();
+      const m = midias.splice(Number(b.dataset.i), 1)[0];
+      if (m.caminho) midiasRemovidas.push(m.caminho);
+      if (m.arquivo && m.previa) URL.revokeObjectURL(m.previa);
+      desenharMidias();
+    }));
+  }
+
+  // PNG vira JPG, porque o Instagram so aceita JPG pela API
+  async function paraJpeg(arquivo) {
+    if (arquivo.type === "image/jpeg") return arquivo;
+    const bmp = await createImageBitmap(arquivo);
+    const canvas = document.createElement("canvas");
+    canvas.width = bmp.width; canvas.height = bmp.height;
+    const ctx = canvas.getContext("2d");
+    ctx.fillStyle = "#fff"; ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.drawImage(bmp, 0, 0);
+    const blob = await new Promise((r) => canvas.toBlob(r, "image/jpeg", 0.92));
+    return new File([blob], arquivo.name.replace(/\.\w+$/, "") + ".jpg", { type: "image/jpeg" });
+  }
+
+  $("arquivo").addEventListener("change", async (e) => {
+    $("erroForm").textContent = "";
+    for (const f of [...e.target.files]) {
+      if (f.size > LIMITE_MB * 1024 * 1024) {
+        $("erroForm").textContent = `"${f.name}" tem mais de ${LIMITE_MB} MB. Comprima o arquivo e tente de novo.`;
+        continue;
+      }
+      const ehVideo = f.type.startsWith("video/");
+      const arquivo = ehVideo ? f : await paraJpeg(f);
+      midias.push({ tipo: ehVideo ? "video" : "imagem", arquivo, previa: URL.createObjectURL(arquivo) });
+    }
+    e.target.value = "";
+    desenharMidias();
+  });
+
+  function validar(paraAgendar) {
+    const escolhidos = tiposEscolhidos();
+    if (!escolhidos.length) return "Escolha pelo menos uma conta.";
+    if (!paraAgendar) return "";
+
+    const quando = new Date($("quando").value);
+    if (isNaN(quando)) return "Escolha a data e a hora.";
+    if (quando.getTime() < Date.now() + 2 * 60 * 1000) return "Escolha um horário pelo menos 2 minutos no futuro.";
+
+    const texto = $("texto").value;
+    if (texto.length > LIMITE_TEXTO) return "O texto passou de 2.200 caracteres.";
+    const hashtags = (texto.match(/(^|\s)#[\p{L}\p{N}_]+/gu) || []).length;
+    if (hashtags > LIMITE_HASHTAGS) return "O Instagram aceita no máximo 30 hashtags.";
+
+    const fotos = midias.filter((m) => m.tipo === "imagem").length;
+    const videos = midias.filter((m) => m.tipo === "video").length;
+    for (const { tipo } of escolhidos) {
+      if (tipo === "reel" && (videos !== 1 || fotos)) return "Reel precisa de exatamente 1 vídeo.";
+      if (tipo === "post" && midias.length !== 1) return "Post precisa de 1 foto ou 1 vídeo. Para mais, use Carrossel.";
+      if (tipo === "story" && midias.length !== 1) return "Story precisa de 1 foto ou 1 vídeo.";
+      if (tipo === "carrossel" && (midias.length < 2 || midias.length > 20)) return "Carrossel precisa de 2 a 20 fotos/vídeos.";
+    }
+    return "";
+  }
+
+  async function salvar(status) {
+    const erro = validar(status === "agendado");
+    $("erroForm").textContent = erro;
+    if (erro) return;
+
+    const botoes = [$("agendar"), $("salvarRascunho"), $("excluir")];
+    botoes.forEach((b) => (b.disabled = true));
+    const textoBotao = $("agendar").textContent;
+    $("agendar").textContent = "Salvando...";
+
+    try {
+      const quandoTxt = $("quando").value;
+      const dados = {
+        marca_id: marca.id,
+        texto: $("texto").value,
+        observacoes: $("obs").value.trim() || null,
+        agendado_para: quandoTxt ? new Date(quandoTxt).toISOString() : null,
+        status,
+      };
+
+      // 1. Post
+      let postId = editando?.id;
+      if (postId) {
+        const { error } = await sb.from("posts").update(dados).eq("id", postId);
+        if (error) throw error;
+      } else {
+        const { data, error } = await sb.from("posts").insert(dados).select("id").single();
+        if (error) throw error;
+        postId = data.id;
+      }
+
+      // 2. Midias: apaga as removidas, sobe as novas, regrava a ordem
+      if (midiasRemovidas.length) {
+        await sb.storage.from("midias").remove(midiasRemovidas);
+      }
+      await sb.from("post_midias").delete().eq("post_id", postId);
+      const linhas = [];
+      for (let i = 0; i < midias.length; i++) {
+        const m = midias[i];
+        if (m.arquivo) {
+          $("agendar").textContent = `Enviando ${i + 1}/${midias.length}...`;
+          const ext = m.arquivo.name.split(".").pop().toLowerCase();
+          const caminho = `${marca.id}/${postId}/${crypto.randomUUID()}.${ext}`;
+          const { error } = await sb.storage.from("midias").upload(caminho, m.arquivo, {
+            contentType: m.arquivo.type, upsert: false,
+          });
+          if (error) throw new Error("Falha ao enviar " + m.arquivo.name + ": " + error.message);
+          m.caminho = caminho;
+          m.tamanho = m.arquivo.size;
+          delete m.arquivo;
+        }
+        linhas.push({ post_id: postId, caminho: m.caminho, tipo: m.tipo, ordem: i, tamanho_bytes: m.tamanho || null });
+      }
+      if (linhas.length) {
+        const { error } = await sb.from("post_midias").insert(linhas);
+        if (error) throw error;
+      }
+
+      // 3. Redes do post
+      const escolhidos = tiposEscolhidos();
+      const comentario = $("comentario").value.trim() || null;
+      const noFeed = $("mostrarFeed").checked;
+      const idsEscolhidos = escolhidos.map((e) => e.conta_id);
+      const antigos = (editando?.post_redes || []).map((pr) => pr.conta_id);
+      const tirar = antigos.filter((id) => !idsEscolhidos.includes(id));
+      if (tirar.length) {
+        await sb.from("post_redes").delete().eq("post_id", postId).in("conta_id", tirar);
+      }
+      const { error: erroRedes } = await sb.from("post_redes").upsert(
+        escolhidos.map((e) => ({
+          post_id: postId,
+          conta_id: e.conta_id,
+          tipo: e.tipo,
+          primeiro_comentario: comentario,
+          mostrar_no_feed: noFeed,
+          status: "pendente",
+          erro: null,
+        })),
+        { onConflict: "post_id,conta_id" },
+      );
+      if (erroRedes) throw erroRedes;
+
+      fecharEditor();
+      mostrarAviso(status === "agendado"
+        ? `Post agendado para ${new Date(quandoTxt).toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" })}.`
+        : "Rascunho salvo.", "ok");
+
+      // Vai para a semana do post
+      if (modo === "semana" && dados.agendado_para) inicioSemana = domingoDe(new Date(dados.agendado_para));
+      await carregarPosts();
+    } catch (e) {
+      console.error(e);
+      $("erroForm").textContent = "Não foi possível salvar. " + (e.message || "");
+    } finally {
+      botoes.forEach((b) => (b.disabled = false));
+      $("agendar").textContent = textoBotao;
+    }
+  }
+
+  async function excluir() {
+    if (!editando) return;
+    const publicado = editando.status === "publicado";
+    const msg = publicado
+      ? "Tirar este post do Clic Redes? Ele continua no Instagram; apague por lá se quiser."
+      : "Excluir este post? Ele não será publicado.";
+    if (!confirm(msg)) return;
+    const { error } = await sb.from("posts")
+      .update({ excluido_em: new Date().toISOString(), status: publicado ? "publicado" : "rascunho" })
+      .eq("id", editando.id);
+    if (error) { $("erroForm").textContent = "Não foi possível excluir."; return; }
+    fecharEditor();
+    mostrarAviso("Post excluído.", "ok");
+    carregarPosts();
+  }
+
+  // ---------- Eventos ----------
+  $("texto").addEventListener("input", atualizarContador);
+  $("contasOp").addEventListener("change", atualizarDicas);
+  $("fechar").addEventListener("click", fecharEditor);
+  $("fundoModal").addEventListener("click", (e) => { if (e.target.id === "fundoModal") fecharEditor(); });
+  document.addEventListener("keydown", (e) => { if (e.key === "Escape") fecharEditor(); });
+  $("agendar").addEventListener("click", () => salvar("agendado"));
+  $("salvarRascunho").addEventListener("click", () => salvar("rascunho"));
+  $("excluir").addEventListener("click", excluir);
+  $("novo").addEventListener("click", () => abrirEditor(null));
+  $("ant").addEventListener("click", () => { inicioSemana = addDias(inicioSemana, -7); carregarPosts(); });
+  $("prox").addEventListener("click", () => { inicioSemana = addDias(inicioSemana, 7); carregarPosts(); });
+  $("hoje").addEventListener("click", () => { inicioSemana = domingoDe(new Date()); carregarPosts(); });
+  $("modo").addEventListener("click", (e) => {
+    const b = e.target.closest("button"); if (!b) return;
+    modo = b.dataset.modo;
+    document.querySelectorAll("#modo button").forEach((x) => x.classList.toggle("on", x === b));
+    carregarPosts();
+  });
+  $("sair").addEventListener("click", async () => { await sb.auth.signOut(); location.href = "index.html"; });
+
+  iniciar();
+</script>
+</body>
+</html>
