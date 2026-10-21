@@ -14,6 +14,7 @@
     --aviso:#b54708; --aviso-fundo:#fffaeb;
   }
   *{box-sizing:border-box}
+  [hidden]{display:none !important}
   body{margin:0;background:var(--fundo);color:var(--texto);font-family:Inter,system-ui,sans-serif}
   header{background:var(--cartao);border-bottom:1px solid var(--borda)}
   .topo{max-width:880px;margin:0 auto;padding:14px 16px;display:flex;align-items:center;gap:16px}
@@ -52,7 +53,8 @@
   .marca-nova label{display:block;font-size:13px;font-weight:600;margin-bottom:6px}
   .marca-nova input{width:100%;max-width:340px;padding:10px 12px;border:1px solid var(--borda);border-radius:9px;font:inherit;font-size:15px;margin-bottom:12px}
   footer{text-align:center;font-size:12px;color:var(--suave);padding:0 16px 28px}
-  @media (max-width:560px){ nav{display:none} .conta{flex-wrap:wrap} }
+  @media (max-width:900px){ .topo{flex-wrap:wrap} nav{order:3;flex-basis:100%;margin-left:0} .sair{margin-left:auto} }
+  @media (max-width:560px){ .conta{flex-wrap:wrap} }
 </style>
 </head>
 <body>
@@ -60,7 +62,7 @@
   <div class="topo">
     <div class="logo"><span>C</span>Clic Redes</div>
     <nav>
-      <a class="breve" href="#">Planejamento</a>
+      <a href="planejamento.html">Planejamento</a>
       <a class="breve" href="#">Métricas</a>
       <a class="breve" href="#">Caixa de entrada</a>
       <a class="ativo" href="contas.html">Contas</a>
@@ -91,7 +93,7 @@
     <div class="lista" id="lista"></div>
   </section>
 </main>
-<footer>Clic Redes · contas.html v1.0</footer>
+<footer>Clic Redes · contas.html v1.1</footer>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
