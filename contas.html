@@ -1,0 +1,234 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Contas · Clic Redes</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --fundo:#f4f6f8; --cartao:#ffffff; --texto:#14212b; --suave:#5b6b78;
+    --borda:#dde3e8; --marca:#0f766e; --marca-escura:#0b5c56;
+    --ok:#067647; --ok-fundo:#ecfdf3; --erro:#b42318; --erro-fundo:#fef3f2;
+    --aviso:#b54708; --aviso-fundo:#fffaeb;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--fundo);color:var(--texto);font-family:Inter,system-ui,sans-serif}
+  header{background:var(--cartao);border-bottom:1px solid var(--borda)}
+  .topo{max-width:880px;margin:0 auto;padding:14px 16px;display:flex;align-items:center;gap:16px}
+  .logo{display:flex;align-items:center;gap:9px;font-weight:700;font-size:18px}
+  .logo span{width:30px;height:30px;border-radius:8px;background:var(--marca);color:#fff;display:grid;place-items:center;font-size:15px}
+  nav{display:flex;gap:4px;margin-left:12px;flex:1;overflow-x:auto}
+  nav a{padding:7px 11px;border-radius:7px;color:var(--suave);text-decoration:none;font-size:14px;font-weight:500;white-space:nowrap}
+  nav a.ativo{background:#e6f4f2;color:var(--marca)}
+  nav a.breve{opacity:.45;pointer-events:none}
+  .sair{background:none;border:1px solid var(--borda);border-radius:7px;padding:7px 11px;font:inherit;font-size:13px;cursor:pointer;color:var(--suave)}
+  main{max-width:880px;margin:0 auto;padding:28px 16px 40px}
+  h1{font-size:22px;margin:0 0 4px}
+  .sub{margin:0 0 22px;color:var(--suave);font-size:14px}
+  .aviso{padding:12px 14px;border-radius:10px;font-size:14px;margin-bottom:18px;display:none}
+  .aviso.ok{display:block;background:var(--ok-fundo);color:var(--ok)}
+  .aviso.erro{display:block;background:var(--erro-fundo);color:var(--erro)}
+  .cartao{background:var(--cartao);border:1px solid var(--borda);border-radius:12px;padding:20px}
+  .conectar{display:flex;flex-wrap:wrap;gap:10px;margin-bottom:22px}
+  .btn{display:inline-flex;align-items:center;gap:8px;padding:10px 14px;border-radius:9px;border:1px solid var(--borda);
+       background:var(--cartao);font:inherit;font-size:14px;font-weight:600;cursor:pointer;color:var(--texto)}
+  .btn.principal{background:var(--marca);border-color:var(--marca);color:#fff}
+  .btn.principal:hover{background:var(--marca-escura)}
+  .btn:disabled{opacity:.5;cursor:not-allowed}
+  .lista{display:flex;flex-direction:column;gap:10px}
+  .conta{display:flex;align-items:center;gap:14px;padding:14px;border:1px solid var(--borda);border-radius:10px;background:var(--cartao)}
+  .conta img,.conta .sem-foto{width:44px;height:44px;border-radius:50%;object-fit:cover;background:#e9edf0;flex:none}
+  .conta .info{flex:1;min-width:0}
+  .conta .nome{font-weight:600;font-size:15px}
+  .conta .det{font-size:13px;color:var(--suave);margin-top:2px}
+  .selo{font-size:12px;font-weight:600;padding:3px 8px;border-radius:999px;white-space:nowrap}
+  .selo.ok{background:var(--ok-fundo);color:var(--ok)}
+  .selo.aviso{background:var(--aviso-fundo);color:var(--aviso)}
+  .selo.erro{background:var(--erro-fundo);color:var(--erro)}
+  .remover{background:none;border:0;color:var(--suave);font:inherit;font-size:13px;cursor:pointer;text-decoration:underline}
+  .vazio{color:var(--suave);font-size:14px;padding:18px;text-align:center;border:1px dashed var(--borda);border-radius:10px}
+  .marca-nova label{display:block;font-size:13px;font-weight:600;margin-bottom:6px}
+  .marca-nova input{width:100%;max-width:340px;padding:10px 12px;border:1px solid var(--borda);border-radius:9px;font:inherit;font-size:15px;margin-bottom:12px}
+  footer{text-align:center;font-size:12px;color:var(--suave);padding:0 16px 28px}
+  @media (max-width:560px){ nav{display:none} .conta{flex-wrap:wrap} }
+</style>
+</head>
+<body>
+<header>
+  <div class="topo">
+    <div class="logo"><span>C</span>Clic Redes</div>
+    <nav>
+      <a class="breve" href="#">Planejamento</a>
+      <a class="breve" href="#">Métricas</a>
+      <a class="breve" href="#">Caixa de entrada</a>
+      <a class="ativo" href="contas.html">Contas</a>
+    </nav>
+    <button class="sair" id="sair">Sair</button>
+  </div>
+</header>
+
+<main>
+  <h1>Contas conectadas</h1>
+  <p class="sub" id="sub">Carregando...</p>
+  <div class="aviso" id="aviso"></div>
+
+  <!-- Aparece so na primeira vez, quando ainda nao existe marca -->
+  <section class="cartao marca-nova" id="marcaNova" hidden>
+    <label for="nomeMarca">Nome da sua primeira marca</label>
+    <input id="nomeMarca" value="Clic Redes" maxlength="60">
+    <br><button class="btn principal" id="criarMarca">Criar marca</button>
+  </section>
+
+  <section id="painel" hidden>
+    <div class="conectar">
+      <button class="btn principal" id="conectarIg">+ Conectar Instagram</button>
+      <button class="btn" disabled title="Em breve">+ Facebook (em breve)</button>
+      <button class="btn" disabled title="Em breve">+ YouTube (em breve)</button>
+      <button class="btn" disabled title="Em breve">+ TikTok (em breve)</button>
+    </div>
+    <div class="lista" id="lista"></div>
+  </section>
+</main>
+<footer>Clic Redes · contas.html v1.0</footer>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+  const SUPABASE_URL = "https://ochesgabptfapmogxmvv.supabase.co";
+  const SUPABASE_KEY = "sb_publishable_J06qsVfOBpm4LdMu-hmkiQ_LO7TIyfE";
+  const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+  const REDES = { instagram: "Instagram", facebook: "Facebook", youtube: "YouTube", tiktok: "TikTok" };
+  const ERROS = {
+    cancelado: "Conexão cancelada no Instagram.",
+    retorno_invalido: "O Instagram não devolveu os dados. Tente de novo.",
+    tempo_esgotado: "Passou muito tempo entre o clique e o retorno. Tente de novo.",
+    troca_codigo: "O Instagram recusou a autorização. Confira se a conta é testadora do app.",
+    troca_longa: "Não foi possível gerar o acesso de 60 dias. Tente de novo.",
+    perfil: "Não foi possível ler o perfil. A conta precisa ser profissional.",
+    salvar: "A conta foi autorizada, mas não foi salva. Tente de novo.",
+    inesperado: "Erro inesperado. Tente de novo em alguns minutos.",
+  };
+
+  let marca = null;
+  const $ = (id) => document.getElementById(id);
+
+  function mostrarAviso(texto, tipo) {
+    const a = $("aviso");
+    a.textContent = texto;
+    a.className = "aviso " + tipo;
+  }
+
+  function esc(t) {
+    return String(t ?? "").replace(/[&<>"']/g, (c) =>
+      ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+  }
+
+  // Mensagem vinda do retorno do Instagram
+  (function lerRetorno() {
+    const p = new URLSearchParams(location.search);
+    if (p.get("conectado")) {
+      mostrarAviso(`Instagram @${p.get("usuario") || ""} conectado com sucesso.`, "ok");
+    } else if (p.get("erro")) {
+      mostrarAviso(ERROS[p.get("erro")] || "Não foi possível conectar.", "erro");
+    }
+    if (p.toString()) history.replaceState(null, "", "contas.html");
+  })();
+
+  async function iniciar() {
+    const { data } = await sb.auth.getSession();
+    if (!data.session) { location.href = "index.html"; return; }
+
+    const { data: marcas, error } = await sb.from("marcas")
+      .select("id, nome").order("criado_em").limit(1);
+    if (error) { $("sub").textContent = "Erro ao carregar. Atualize a página."; return; }
+
+    if (!marcas.length) {
+      $("sub").textContent = "Antes de conectar, crie a sua marca.";
+      $("marcaNova").hidden = false;
+      return;
+    }
+    marca = marcas[0];
+    $("sub").textContent = `Marca: ${marca.nome}`;
+    $("marcaNova").hidden = true;
+    $("painel").hidden = false;
+    await carregarContas();
+  }
+
+  async function carregarContas() {
+    const { data: contas, error } = await sb.from("contas_redes")
+      .select("id, rede, nome, usuario, foto_url, token_expira_em, ativo")
+      .eq("marca_id", marca.id).order("criado_em");
+    const lista = $("lista");
+    if (error) { lista.innerHTML = '<div class="vazio">Erro ao carregar as contas.</div>'; return; }
+    if (!contas.length) {
+      lista.innerHTML = '<div class="vazio">Nenhuma conta conectada ainda.</div>';
+      return;
+    }
+    lista.innerHTML = contas.map((c) => {
+      const dias = c.token_expira_em
+        ? Math.floor((new Date(c.token_expira_em) - Date.now()) / 86400000) : null;
+      let selo = '<span class="selo ok">Conectada</span>';
+      if (dias !== null && dias < 0) selo = '<span class="selo erro">Expirada · reconecte</span>';
+      else if (dias !== null && dias <= 10) selo = `<span class="selo aviso">Expira em ${dias} dia(s)</span>`;
+      const foto = c.foto_url
+        ? `<img src="${esc(c.foto_url)}" alt="">`
+        : '<div class="sem-foto"></div>';
+      const validade = c.token_expira_em
+        ? ` · acesso válido até ${new Date(c.token_expira_em).toLocaleDateString("pt-BR")}` : "";
+      return `<div class="conta">
+        ${foto}
+        <div class="info">
+          <div class="nome">${esc(c.nome || c.usuario)}</div>
+          <div class="det">${REDES[c.rede] || c.rede} · @${esc(c.usuario)}${validade}</div>
+        </div>
+        ${selo}
+        <button class="remover" data-id="${c.id}" data-nome="${esc(c.usuario)}">Remover</button>
+      </div>`;
+    }).join("");
+
+    lista.querySelectorAll(".remover").forEach((b) =>
+      b.addEventListener("click", () => remover(b.dataset.id, b.dataset.nome)));
+  }
+
+  async function remover(id, nome) {
+    if (!confirm(`Remover @${nome} do Clic Redes? Os posts agendados para ela deixam de sair.`)) return;
+    const { error } = await sb.from("contas_redes").delete().eq("id", id);
+    if (error) mostrarAviso("Não foi possível remover.", "erro");
+    else { mostrarAviso(`@${nome} removida.`, "ok"); carregarContas(); }
+  }
+
+  $("criarMarca").addEventListener("click", async () => {
+    const nome = $("nomeMarca").value.trim();
+    if (!nome) return;
+    $("criarMarca").disabled = true;
+    const { error } = await sb.from("marcas").insert({ nome });
+    $("criarMarca").disabled = false;
+    if (error) { mostrarAviso("Não foi possível criar a marca.", "erro"); return; }
+    iniciar();
+  });
+
+  $("conectarIg").addEventListener("click", async () => {
+    const btn = $("conectarIg");
+    btn.disabled = true; btn.textContent = "Abrindo o Instagram...";
+    const { data, error } = await sb.functions.invoke("instagram-iniciar", {
+      body: { marca_id: marca.id },
+    });
+    if (error || !data?.url) {
+      mostrarAviso("Não foi possível iniciar a conexão. Tente de novo.", "erro");
+      btn.disabled = false; btn.textContent = "+ Conectar Instagram";
+      return;
+    }
+    location.href = data.url;
+  });
+
+  $("sair").addEventListener("click", async () => {
+    await sb.auth.signOut();
+    location.href = "index.html";
+  });
+
+  iniciar();
+</script>
+</body>
+</html>
