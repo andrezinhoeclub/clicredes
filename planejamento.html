@@ -164,7 +164,7 @@
   <div class="aviso" id="aviso"></div>
   <div id="area"></div>
 </main>
-<footer>Clic Redes · planejamento.html v1.4 · horários de Brasília</footer>
+<footer>Clic Redes · planejamento.html v1.5 · horários de Brasília</footer>
 
 <!-- Editor de post -->
 <div class="fundo-modal" id="fundoModal">
@@ -232,6 +232,7 @@
     youtube: '<i class="fa-brands fa-youtube"></i>',
     tiktok: '<i class="fa-brands fa-tiktok"></i>',
   };
+  const nomeConta = (c) => (!c ? "" : c.rede === "facebook" ? (c.nome || c.usuario) : "@" + c.usuario);
   const icone = (rede) => `<span class="rede-ic ${rede}" title="${rede}">${ICONE[rede] || ""}</span>`;
 
   const $ = (id) => document.getElementById(id);
@@ -333,7 +334,7 @@
     return (p.post_redes || []).map((pr) => {
       const c = contas.find((x) => x.id === pr.conta_id);
       const rede = c ? c.rede : "instagram";
-      return `<span class="rede-ic ${rede}" title="${esc(c ? "@" + c.usuario : "")} · ${esc(pr.tipo)}">${ICONE[rede]}</span>`;
+      return `<span class="rede-ic ${rede}" title="${esc(nomeConta(c))} · ${esc(pr.tipo)}">${ICONE[rede]}</span>`;
     }).join("");
   }
 
@@ -431,7 +432,7 @@
       const foto = c.foto_url ? `<img src="${esc(c.foto_url)}" alt="">` : '<div class="sem-foto"></div>';
       return `<label class="conta-op">
         <input type="checkbox" class="ck-conta" value="${c.id}" ${marcado ? "checked" : ""}>
-        ${foto}<span class="nome">@${esc(c.usuario)} ${icone(c.rede)}</span>
+        ${foto}<span class="nome">${esc(nomeConta(c))} ${icone(c.rede)}</span>
         <select class="tipo-conta" data-conta="${c.id}">
           ${TIPOS[c.rede].map(([v, t]) => `<option value="${v}" ${v === tipoAtual ? "selected" : ""}>${t}</option>`).join("")}
         </select>
@@ -455,8 +456,8 @@
     // Detalhe por rede (link ou erro)
     $("detalheRedes").innerHTML = (post?.post_redes || []).map((pr) => {
       const c = contas.find((x) => x.id === pr.conta_id);
-      if (pr.link) return `<div>@${esc(c?.usuario)}: <a href="${esc(pr.link)}" target="_blank" rel="noopener">ver post publicado</a></div>`;
-      if (pr.erro) return `<div style="color:var(--erro)">@${esc(c?.usuario)}: ${esc(pr.erro)}</div>`;
+      if (pr.link) return `<div>${esc(nomeConta(c))}: <a href="${esc(pr.link)}" target="_blank" rel="noopener">ver post publicado</a></div>`;
+      if (pr.erro) return `<div style="color:var(--erro)">${esc(nomeConta(c))}: ${esc(pr.erro)}</div>`;
       return "";
     }).join("");
 
@@ -586,9 +587,11 @@
 
     const fotos = midias.filter((m) => m.tipo === "imagem").length;
     const videos = midias.filter((m) => m.tipo === "video").length;
-    for (const { tipo } of escolhidos) {
+    for (const { tipo, conta_id } of escolhidos) {
+      const rede = (contas.find((c) => c.id === conta_id) || {}).rede;
       if (tipo === "reel" && (videos !== 1 || fotos)) return "Reel precisa de exatamente 1 vídeo.";
-      if (tipo === "post" && midias.length !== 1) return "Post precisa de 1 foto ou 1 vídeo. Para mais, use Carrossel.";
+      if (tipo === "post" && rede === "facebook" && midias.length > 1) return "No Facebook, o post aceita só texto, 1 foto ou 1 vídeo.";
+      if (tipo === "post" && rede !== "facebook" && midias.length !== 1) return "Post no Instagram precisa de 1 foto ou 1 vídeo. Para mais, use Carrossel.";
       if (tipo === "story" && midias.length !== 1) return "Story precisa de 1 foto ou 1 vídeo.";
       if (tipo === "carrossel" && (midias.length < 2 || midias.length > 20)) return "Carrossel precisa de 2 a 20 fotos/vídeos.";
     }
