@@ -6,6 +6,7 @@
 <title>Caixa de entrada · Clic Redes</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
 <style>
   :root{
     --fundo:#f4f6f8; --cartao:#ffffff; --texto:#14212b; --suave:#5b6b78;
@@ -54,6 +55,13 @@
   .item:hover{background:#f9fafb}
   .item.sel{background:var(--marca-clara);border-left-color:var(--marca)}
   .av{width:38px;height:38px;border-radius:50%;background:#dfe7ea;color:#33454f;display:grid;place-items:center;font-weight:700;font-size:15px;flex:none;text-transform:uppercase}
+  .rede-ic{width:18px;height:18px;border-radius:5px;display:inline-grid;place-items:center;font-size:11px;color:#fff;flex:none}
+  .rede-ic.instagram{background:linear-gradient(45deg,#f09433,#dc2743 50%,#bc1888)}
+  .rede-ic.facebook{background:#1877f2}
+  .rede-ic.youtube{background:#ff0000}
+  .rede-ic.tiktok{background:#111}
+  .av-wrap{position:relative;flex:none}
+  .av-wrap .rede-ic{position:absolute;right:-3px;bottom:-3px;width:16px;height:16px;font-size:9.5px;border:2px solid #fff}
   .item .meio{flex:1;min-width:0}
   .item .l1{display:flex;align-items:center;gap:6px}
   .item .nome{font-weight:600;font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -142,7 +150,7 @@
       <div id="aberta" hidden style="display:flex;flex-direction:column;min-height:0;flex:1">
         <div class="conv-topo">
           <button class="voltar" id="voltar" aria-label="Voltar">‹</button>
-          <div class="av" id="convAv"></div>
+          <div class="av-wrap"><div class="av" id="convAv"></div><span id="convRede"></span></div>
           <div>
             <div class="nome" id="convNome"></div>
             <div class="det" id="convDet"></div>
@@ -162,7 +170,7 @@
     </section>
   </div>
 </main>
-<footer>Clic Redes · caixa.html v1.0</footer>
+<footer>Clic Redes · caixa.html v1.1</footer>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
@@ -173,6 +181,15 @@
   const $ = (id) => document.getElementById(id);
   const esc = (t) => String(t ?? "").replace(/[&<>"']/g, (c) =>
     ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+
+  const ICONE = {
+    instagram: '<i class="fa-brands fa-instagram"></i>',
+    facebook: '<i class="fa-brands fa-facebook-f"></i>',
+    youtube: '<i class="fa-brands fa-youtube"></i>',
+    tiktok: '<i class="fa-brands fa-tiktok"></i>',
+  };
+  const icone = (rede) => `<span class="rede-ic ${rede}">${ICONE[rede] || ""}</span>`;
+  const redeDa = (c) => (contas.find((x) => x.id === c.conta_id) || {}).rede || "instagram";
 
   let contas = [];
   let conversas = [];
@@ -273,7 +290,7 @@
       const prev = p ? (p.de_mim ? "Você: " : "") + p.texto : "";
       const nome = c.autor_nome || "sem nome";
       return `<button class="item ${c.lida ? "" : "nao-lida"} ${atual?.id === c.id ? "sel" : ""}" data-id="${c.id}">
-        <div class="av">${esc(nome[0] || "?")}</div>
+        <div class="av-wrap"><div class="av">${esc(nome[0] || "?")}</div>${icone(redeDa(c))}</div>
         <div class="meio">
           <div class="l1">${c.lida ? "" : '<span class="ponto"></span>'}<span class="nome">@${esc(nome)}</span>
             <span class="etq ${c.tipo === "mensagem" ? "dm" : ""}">${c.tipo === "mensagem" ? "Direct" : "Comentário"}</span>
@@ -294,6 +311,7 @@
     const conta = contas.find((x) => x.id === c.conta_id);
     const nome = c.autor_nome || "sem nome";
     $("convAv").textContent = nome[0] || "?";
+    $("convRede").innerHTML = icone(redeDa(c));
     $("convNome").textContent = "@" + nome;
     const link = linksPosts[c.post_id_na_rede];
     $("convDet").innerHTML = c.tipo === "mensagem"
@@ -343,11 +361,19 @@
     btn.disabled = true; btn.textContent = "Buscando...";
     const { data, error } = await sb.functions.invoke("caixa-entrada", { body: { acao: "sincronizar" } });
     btn.disabled = false; btn.textContent = "Sincronizar agora";
-    const falhas = (data?.resultado || []).filter((r) => r.erro || r.erro_mensagens || r.erro_comentarios);
-    if (error) mostrarAviso("Não foi possível sincronizar.", "erro");
-    else if (falhas.length) mostrarAviso("Parte não sincronizou: " + falhas.map((f) =>
-      `@${f.conta}: ${f.erro || f.erro_mensagens || f.erro_comentarios}`).join(" · "), "erro");
-    else mostrarAviso("Caixa de entrada atualizada.", "ok");
+    const res = data?.resultado || [];
+    const falhas = res.filter((r) => r.erro || r.erro_mensagens || r.erro_comentarios);
+    if (error) {
+      let msg = "";
+      if (error.context) { try { msg = (await error.context.json()).erro || ""; } catch (_) { /* sem corpo */ } }
+      mostrarAviso("Não foi possível sincronizar. " + msg, "erro");
+    } else if (falhas.length) {
+      mostrarAviso("Parte não sincronizou: " + falhas.map((f) =>
+        `@${f.conta}: ${f.erro || f.erro_mensagens || f.erro_comentarios}`).join(" · "), "erro");
+    } else {
+      const resumo = res.map((r) => `@${r.conta}: ${r.mensagens ?? 0} conversa(s) de Direct atualizada(s), ${r.comentarios ?? 0} comentário(s)`).join(" · ");
+      mostrarAviso("Sincronizado. " + (resumo || "Nenhuma conta."), "ok");
+    }
     await carregar();
   }
 
