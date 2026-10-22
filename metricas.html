@@ -6,6 +6,7 @@
 <title>Métricas · Clic Redes</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
 <style>
   :root{
     --fundo:#f4f6f8; --cartao:#ffffff; --texto:#14212b; --suave:#5b6b78;
@@ -80,6 +81,16 @@
   td:nth-child(3) a:hover{color:var(--marca);text-decoration:underline}
   tr:last-child td{border-bottom:0}
   .tipo{font-size:11px;font-weight:700;padding:2px 7px;border-radius:999px;background:#f2f4f7;color:#475467}
+  .rede-ic{width:18px;height:18px;border-radius:5px;display:inline-grid;place-items:center;font-size:11px;color:#fff;flex:none;vertical-align:middle;margin-right:6px}
+  .rede-ic.instagram{background:linear-gradient(45deg,#f09433,#dc2743 50%,#bc1888)}
+  .rede-ic.facebook{background:#1877f2}
+  .rede-ic.youtube{background:#ff0000}
+  .rede-ic.tiktok{background:#111}
+  /* Resumo por conta (so em "Todas as contas") */
+  table.resumo th,table.resumo td{text-align:right!important;min-width:0!important;max-width:none!important;white-space:nowrap!important;cursor:default}
+  table.resumo th:first-child,table.resumo td:first-child{text-align:left!important}
+  table.resumo tr.linha-conta{cursor:pointer}
+  table.resumo tr.linha-conta:hover td{background:var(--marca-clara)}
   .cabeca-tabela{display:flex;align-items:center;gap:10px;margin-bottom:8px}
   .cabeca-tabela h2{margin:0;flex:1}
   footer{text-align:center;font-size:12px;color:var(--suave);padding:0 16px 28px}
@@ -124,6 +135,12 @@
   <div id="painel" hidden>
     <section class="kpis" id="kpis"></section>
 
+    <section class="bloco" id="blocoResumo" style="margin-bottom:14px" hidden>
+      <h2>Resumo por conta</h2>
+      <p class="desc">Clique numa conta para ver só ela.</p>
+      <div class="tabela-wrap" id="resumo"></div>
+    </section>
+
     <section class="linha2">
       <div class="bloco">
         <h2 id="tituloSeg">Seguidores</h2>
@@ -154,7 +171,7 @@
     </section>
   </div>
 </main>
-<footer>Clic Redes · metricas.html v1.3</footer>
+<footer>Clic Redes · metricas.html v1.4</footer>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
@@ -167,7 +184,17 @@
     ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
   const num = (n) => (n == null ? "—" : Number(n).toLocaleString("pt-BR"));
   const DIAS = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
-  const TIPO = { REELS: "Reel", CARROSSEL: "Carrossel", VIDEO: "Vídeo", IMAGEM: "Foto" };
+  const TIPO = { REELS: "Reel", CARROSSEL: "Carrossel", VIDEO: "Vídeo", IMAGEM: "Foto", SHORT: "Short" };
+  const REDE = { instagram: "Instagram", facebook: "Facebook", youtube: "YouTube", tiktok: "TikTok" };
+  const ICONE = {
+    instagram: '<i class="fa-brands fa-instagram"></i>',
+    facebook: '<i class="fa-brands fa-facebook-f"></i>',
+    youtube: '<i class="fa-brands fa-youtube"></i>',
+    tiktok: '<i class="fa-brands fa-tiktok"></i>',
+  };
+  const icone = (rede) => `<span class="rede-ic ${rede}" title="${REDE[rede] || rede}">${ICONE[rede] || ""}</span>`;
+  const nomeConta = (c) => !c ? "" : c.rede === "instagram" ? "@" + c.usuario : (c.nome || c.usuario);
+  const TODAS = "todas";
 
   let contas = [];
   let contaId = null;
@@ -198,8 +225,13 @@
       .select("id, rede, nome, usuario").eq("marca_id", marcas[0].id).eq("ativo", true).order("criado_em");
     contas = (cs || []).filter((c) => ["instagram", "facebook", "youtube"].includes(c.rede));
     if (!contas.length) { $("semConta").hidden = false; $("atualizar").disabled = true; return; }
-    $("conta").innerHTML = contas.map((c) => `<option value="${c.id}">${c.rede === "facebook" ? "Facebook · " + esc(c.nome || c.usuario) : c.rede === "youtube" ? "YouTube · " + esc(c.nome || c.usuario) : "Instagram · @" + esc(c.usuario)}</option>`).join("");
-    contaId = contas[0].id;
+    $("conta").innerHTML = (contas.length > 1 ? `<option value="${TODAS}">Todas as contas (${contas.length})</option>` : "") +
+      contas.map((c) => `<option value="${c.id}">${REDE[c.rede]} · ${esc(nomeConta(c))}</option>`).join("");
+    let salvo = null;
+    try { salvo = localStorage.getItem("clicredes_metricas_conta"); } catch (_) { /* sem armazenamento */ }
+    contaId = contas.length > 1 ? TODAS : contas[0].id;
+    if (salvo && (salvo === TODAS ? contas.length > 1 : contas.some((c) => c.id === salvo))) contaId = salvo;
+    $("conta").value = contaId;
     $("painel").hidden = false;
     await carregar();
   }
@@ -207,14 +239,16 @@
   async function carregar() {
     const desde = new Date(Date.now() - dias * 86400000);
     const desde90 = new Date(Date.now() - 90 * 86400000);
+    const ids = contaId === TODAS ? contas.map((c) => c.id) : [contaId];
     const [rd, rp] = await Promise.all([
-      sb.from("metricas_diarias").select("*").eq("conta_id", contaId)
+      sb.from("metricas_diarias").select("*").in("conta_id", ids)
         .gte("dia", diaBR(new Date(desde.getTime() - 86400000))).order("dia"),
-      sb.from("metricas_posts").select("*").eq("conta_id", contaId)
+      sb.from("metricas_posts").select("*").in("conta_id", ids)
         .gte("publicado_em", desde90.toISOString()).order("publicado_em", { ascending: false }),
     ]);
     if (rd.error || rp.error) { mostrarAviso("Erro ao carregar as métricas.", "erro"); return; }
-    diarias = rd.data || [];
+    diariasPorConta = rd.data || [];
+    diarias = contaId === TODAS ? somarDias(diariasPorConta, ids) : diariasPorConta;
     const todos = rp.data || [];
     postsPeriodo = todos.filter((p) => new Date(p.publicado_em) >= desde);
 
@@ -223,9 +257,10 @@
       ? "Atualizado " + new Date(ultima).toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" }) : "Ainda sem dados";
 
     const ehYt = (contas.find((c) => c.id === contaId) || {}).rede === "youtube";
-    rotuloSeg = ehYt ? "Inscritos" : "Seguidores";
+    rotuloSeg = contaId === TODAS ? "Seguidores + inscritos" : ehYt ? "Inscritos" : "Seguidores";
     $("tituloSeg").textContent = rotuloSeg;
     desenharKpis();
+    desenharResumo();
     $("gSeguidores").innerHTML = graficoLinha(diarias.filter((d) => d.seguidores != null), "seguidores");
     $("gVisualizacoes").innerHTML = graficoBarras(diarias.filter((d) => d.visualizacoes != null), "visualizacoes");
     desenharMapa(todos);
@@ -233,6 +268,63 @@
   }
 
   let rotuloSeg = "Seguidores";
+  let diariasPorConta = [];
+
+  // Junta os dias de varias contas. Seguidores: cada conta conta com o
+  // ultimo numero conhecido ate aquele dia (para nao "cair" num dia sem coleta).
+  function somarDias(linhas, ids) {
+    const diasLista = [...new Set(linhas.map((l) => l.dia))].sort();
+    const porConta = {};
+    linhas.forEach((l) => { (porConta[l.conta_id] ||= {})[l.dia] = l; });
+    const ultimoSeg = {};
+    return diasLista.map((dia) => {
+      const out = { dia, seguidores: null, visualizacoes: null, alcance: null, interacoes: null };
+      for (const id of ids) {
+        const l = porConta[id]?.[dia];
+        if (l?.seguidores != null) ultimoSeg[id] = l.seguidores;
+        if (ultimoSeg[id] != null) out.seguidores = (out.seguidores || 0) + ultimoSeg[id];
+        for (const campo of ["visualizacoes", "alcance", "interacoes"]) {
+          if (l?.[campo] != null) out[campo] = (out[campo] || 0) + l[campo];
+        }
+      }
+      return out;
+    });
+  }
+
+  function desenharResumo() {
+    const bloco = $("blocoResumo");
+    if (contaId !== TODAS) { bloco.hidden = true; return; }
+    bloco.hidden = false;
+    const limite = diaBR(new Date(Date.now() - dias * 86400000));
+    const linhas = contas.map((c) => {
+      const ds = diariasPorConta.filter((d) => d.conta_id === c.id);
+      const seg = ds.filter((d) => d.seguidores != null);
+      const atual = seg.length ? seg[seg.length - 1].seguidores : null;
+      const dif = seg.length > 1 ? atual - seg[0].seguidores : null;
+      const per = ds.filter((d) => d.dia >= limite);
+      const soma = (campo) => {
+        const v = per.filter((d) => d[campo] != null);
+        return v.length ? v.reduce((s, d) => s + d[campo], 0) : null;
+      };
+      const posts = postsPeriodo.filter((p) => p.conta_id === c.id);
+      return { c, atual, dif, vis: soma("visualizacoes"), inter: soma("interacoes"), posts: posts.length };
+    });
+    $("resumo").innerHTML = `<table class="resumo"><thead><tr>
+        <th>Conta</th><th>Seguidores / inscritos</th><th>Variação</th><th>Visualizações</th><th>Interações</th><th>Posts</th>
+      </tr></thead><tbody>${linhas.map((l) => `<tr class="linha-conta" data-id="${l.c.id}">
+        <td>${icone(l.c.rede)}${esc(nomeConta(l.c))}</td>
+        <td>${num(l.atual)}</td>
+        <td style="color:${l.dif > 0 ? "var(--ok)" : l.dif < 0 ? "var(--erro)" : "inherit"}">${l.dif == null ? "—" : (l.dif > 0 ? "+" : "") + num(l.dif)}</td>
+        <td>${num(l.vis)}</td><td>${num(l.inter)}</td><td>${l.posts}</td>
+      </tr>`).join("")}</tbody></table>`;
+    $("resumo").querySelectorAll("tr.linha-conta").forEach((tr) => tr.addEventListener("click", () => {
+      contaId = tr.dataset.id; $("conta").value = contaId; lembrarConta(); carregar();
+    }));
+  }
+
+  function lembrarConta() {
+    try { localStorage.setItem("clicredes_metricas_conta", contaId); } catch (_) { /* sem armazenamento */ }
+  }
   function desenharKpis() {
     const comSeg = diarias.filter((d) => d.seguidores != null);
     const segAtual = comSeg.length ? comSeg[comSeg.length - 1].seguidores : null;
@@ -377,7 +469,7 @@
       `<th data-col="${c}" class="${ordem.col === c ? "ord" + (ordem.asc ? " asc" : "") : ""}">${t}</th>`).join("")}</tr></thead>
       <tbody>${linhas.map((p) => `<tr>
         <td>${new Date(p.publicado_em).toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })}</td>
-        <td><span class="tipo">${TIPO[p.tipo] || p.tipo || ""}</span></td>
+        <td>${contaId === TODAS ? icone((contas.find((c) => c.id === p.conta_id) || {}).rede) : ""}<span class="tipo">${TIPO[p.tipo] || p.tipo || ""}</span></td>
         <td>${p.link ? `<a href="${esc(p.link)}" target="_blank" rel="noopener">${esc(p.texto) || "<i>sem legenda</i>"}</a>` : esc(p.texto)}</td>
         <td>${num(p.visualizacoes)}</td><td>${num(p.alcance)}</td><td>${num(p.curtidas)}</td>
         <td>${num(p.comentarios)}</td><td>${num(p.salvos)}</td><td>${num(p.compartilhamentos)}</td>
@@ -391,11 +483,12 @@
   }
 
   function baixarCsv() {
-    const cab = ["data", "tipo", "legenda", "link", "visualizacoes", "alcance", "curtidas", "comentarios", "salvos", "compartilhamentos", "engajamento_%"];
+    const cab = ["data", "conta", "tipo", "legenda", "link", "visualizacoes", "alcance", "curtidas", "comentarios", "salvos", "compartilhamentos", "engajamento_%"];
     const q = (v) => `"${String(v ?? "").replace(/"/g, '""')}"`;
     const linhas = postsPeriodo.map((p) => {
       const e = engajamento(p);
-      return [new Date(p.publicado_em).toLocaleString("pt-BR"), TIPO[p.tipo] || p.tipo, p.texto, p.link,
+      const c = contas.find((x) => x.id === p.conta_id);
+      return [new Date(p.publicado_em).toLocaleString("pt-BR"), c ? REDE[c.rede] + " " + nomeConta(c) : "", TIPO[p.tipo] || p.tipo, p.texto, p.link,
         p.visualizacoes, p.alcance, p.curtidas, p.comentarios, p.salvos, p.compartilhamentos,
         e == null ? "" : e.toFixed(2).replace(".", ",")].map(q).join(";");
     });
@@ -403,13 +496,13 @@
     const a = document.createElement("a");
     const conta = contas.find((c) => c.id === contaId);
     a.href = URL.createObjectURL(blob);
-    a.download = `metricas-${conta ? conta.usuario : "conta"}-${diaBR(new Date())}.csv`;
+    a.download = `metricas-${conta ? conta.usuario : "todas"}-${diaBR(new Date())}.csv`.replace(/[^\w.-]+/g, "-");
     a.click();
     URL.revokeObjectURL(a.href);
   }
 
   // ---------- Eventos ----------
-  $("conta").addEventListener("change", (e) => { contaId = e.target.value; carregar(); });
+  $("conta").addEventListener("change", (e) => { contaId = e.target.value; lembrarConta(); carregar(); });
   $("periodo").addEventListener("click", (e) => {
     const b = e.target.closest("button"); if (!b) return;
     dias = Number(b.dataset.dias);
@@ -418,12 +511,12 @@
   });
   $("atualizar").addEventListener("click", async () => {
     const btn = $("atualizar");
-    btn.disabled = true; btn.textContent = "Buscando no Instagram...";
+    btn.disabled = true; btn.textContent = "Buscando nas redes...";
     const { data, error } = await sb.functions.invoke("coletar-metricas", { body: {} });
     btn.disabled = false; btn.textContent = "Atualizar agora";
     const falhas = (data?.resultado || []).filter((r) => r.erro);
     if (error || falhas.length) {
-      mostrarAviso("Não foi possível atualizar" + (falhas.length ? ": " + falhas.map((f) => `@${f.conta} (${f.erro})`).join(", ") : "."), "erro");
+      mostrarAviso("Não foi possível atualizar" + (falhas.length ? ": " + falhas.map((f) => `${f.conta} (${f.erro})`).join(", ") : "."), "erro");
     } else {
       mostrarAviso("Métricas atualizadas.", "ok");
     }
