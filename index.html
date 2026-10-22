@@ -6,6 +6,7 @@
 <title>Entrar · Clic Redes</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
 <style>
   :root{
     --fundo:#f4f6f8; --cartao:#ffffff; --texto:#14212b; --suave:#5b6b78;
@@ -28,7 +29,14 @@
   button:hover{background:var(--marca-escura)}
   button:disabled{opacity:.6;cursor:wait}
   .msg{margin-top:14px;font-size:14px;color:var(--erro);min-height:20px}
-  footer{margin-top:20px;font-size:12px;color:var(--suave)}
+  footer{margin-top:20px;font-size:12px;color:var(--suave);text-align:center;line-height:1.8}
+  footer a{color:var(--suave)}
+  .sobre{width:100%;max-width:380px;margin-top:18px;font-size:13.5px;color:var(--suave);line-height:1.55;text-align:center}
+  .redes{display:flex;justify-content:center;gap:8px;margin:10px 0 0}
+  .rede-ic{width:26px;height:26px;border-radius:7px;display:inline-grid;place-items:center;font-size:14px;color:#fff}
+  .rede-ic.instagram{background:linear-gradient(45deg,#f09433,#dc2743 50%,#bc1888)}
+  .rede-ic.facebook{background:#1877f2}
+  .rede-ic.youtube{background:#ff0000}
 </style>
 </head>
 <body>
@@ -44,7 +52,19 @@
       <div class="msg" id="msg"></div>
     </form>
   </main>
-  <footer>Clic Redes · index.html v1.0</footer>
+  <section class="sobre">
+    O Clic Redes agenda publicações, mostra métricas e reúne mensagens e comentários das contas que você conecta.
+    <div class="redes" aria-label="Redes compatíveis">
+      <span class="rede-ic instagram" title="Instagram"><i class="fa-brands fa-instagram"></i></span>
+      <span class="rede-ic facebook" title="Facebook"><i class="fa-brands fa-facebook-f"></i></span>
+      <span class="rede-ic youtube" title="YouTube"><i class="fa-brands fa-youtube"></i></span>
+    </div>
+    <div style="margin-top:6px">Compatível com Instagram, Facebook e YouTube.</div>
+  </section>
+  <footer>
+    <a href="privacidade.html">Política de privacidade</a> · <a href="termos.html">Termos de uso</a><br>
+    Clic Redes · index.html v1.1
+  </footer>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
