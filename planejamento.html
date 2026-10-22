@@ -6,6 +6,7 @@
 <title>Planejamento · Clic Redes</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
 <style>
   :root{
     --fundo:#f4f6f8; --cartao:#ffffff; --texto:#14212b; --suave:#5b6b78;
@@ -69,8 +70,8 @@
   .st.publicando{background:var(--aviso-fundo);color:var(--aviso)}
   .st.publicado{background:var(--ok-fundo);color:var(--ok)}
   .st.erro{background:var(--erro-fundo);color:var(--erro)}
-  .rede-ic{width:16px;height:16px;border-radius:4px;display:inline-grid;place-items:center;font-size:9px;font-weight:700;color:#fff;flex:none}
-  .rede-ic.instagram{background:#d6249f}
+  .rede-ic{width:18px;height:18px;border-radius:5px;display:inline-grid;place-items:center;font-size:11px;color:#fff;flex:none;vertical-align:middle}
+  .rede-ic.instagram{background:linear-gradient(45deg,#f09433,#dc2743 50%,#bc1888)}
   .rede-ic.facebook{background:#1877f2}
   .rede-ic.youtube{background:#ff0000}
   .rede-ic.tiktok{background:#111}
@@ -163,7 +164,7 @@
   <div class="aviso" id="aviso"></div>
   <div id="area"></div>
 </main>
-<footer>Clic Redes · planejamento.html v1.2 · horários de Brasília</footer>
+<footer>Clic Redes · planejamento.html v1.4 · horários de Brasília</footer>
 
 <!-- Editor de post -->
 <div class="fundo-modal" id="fundoModal">
@@ -225,7 +226,13 @@
     youtube: [["short", "Short"], ["video", "Vídeo"]],
     tiktok: [["video", "Vídeo"]],
   };
-  const LETRA = { instagram: "IG", facebook: "f", youtube: "▶", tiktok: "♪" };
+  const ICONE = {
+    instagram: '<i class="fa-brands fa-instagram"></i>',
+    facebook: '<i class="fa-brands fa-facebook-f"></i>',
+    youtube: '<i class="fa-brands fa-youtube"></i>',
+    tiktok: '<i class="fa-brands fa-tiktok"></i>',
+  };
+  const icone = (rede) => `<span class="rede-ic ${rede}" title="${rede}">${ICONE[rede] || ""}</span>`;
 
   const $ = (id) => document.getElementById(id);
   const esc = (t) => String(t ?? "").replace(/[&<>"']/g, (c) =>
@@ -303,6 +310,13 @@
     desenhar();
   }
 
+  // Gera um nome unico para cada arquivo (funciona com ou sem HTTPS)
+  function novoId() {
+    if (window.crypto && crypto.randomUUID) return crypto.randomUUID();
+    const b = crypto.getRandomValues(new Uint8Array(16));
+    return [...b].map((x) => x.toString(16).padStart(2, "0")).join("");
+  }
+
   async function assinarMiniaturas() {
     const caminhos = [];
     for (const p of posts) {
@@ -319,7 +333,7 @@
     return (p.post_redes || []).map((pr) => {
       const c = contas.find((x) => x.id === pr.conta_id);
       const rede = c ? c.rede : "instagram";
-      return `<span class="rede-ic ${rede}" title="${esc(c ? "@" + c.usuario : "")} · ${esc(pr.tipo)}">${LETRA[rede]}</span>`;
+      return `<span class="rede-ic ${rede}" title="${esc(c ? "@" + c.usuario : "")} · ${esc(pr.tipo)}">${ICONE[rede]}</span>`;
     }).join("");
   }
 
@@ -417,7 +431,7 @@
       const foto = c.foto_url ? `<img src="${esc(c.foto_url)}" alt="">` : '<div class="sem-foto"></div>';
       return `<label class="conta-op">
         <input type="checkbox" class="ck-conta" value="${c.id}" ${marcado ? "checked" : ""}>
-        ${foto}<span class="nome">@${esc(c.usuario)} <span class="rede-ic ${c.rede}">${LETRA[c.rede]}</span></span>
+        ${foto}<span class="nome">@${esc(c.usuario)} ${icone(c.rede)}</span>
         <select class="tipo-conta" data-conta="${c.id}">
           ${TIPOS[c.rede].map(([v, t]) => `<option value="${v}" ${v === tipoAtual ? "selected" : ""}>${t}</option>`).join("")}
         </select>
@@ -623,7 +637,7 @@
         if (m.arquivo) {
           $("agendar").textContent = `Enviando ${i + 1}/${midias.length}...`;
           const ext = m.arquivo.name.split(".").pop().toLowerCase();
-          const caminho = `${marca.id}/${postId}/${crypto.randomUUID()}.${ext}`;
+          const caminho = `${marca.id}/${postId}/${novoId()}.${ext}`;
           const { error } = await sb.storage.from("midias").upload(caminho, m.arquivo, {
             contentType: m.arquivo.type, upsert: false,
           });
