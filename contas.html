@@ -6,6 +6,7 @@
 <title>Contas · Clic Redes</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
 <style>
   :root{
     --fundo:#f4f6f8; --cartao:#ffffff; --texto:#14212b; --suave:#5b6b78;
@@ -48,6 +49,14 @@
   .selo.ok{background:var(--ok-fundo);color:var(--ok)}
   .selo.aviso{background:var(--aviso-fundo);color:var(--aviso)}
   .selo.erro{background:var(--erro-fundo);color:var(--erro)}
+  .rede-ic{width:18px;height:18px;border-radius:5px;display:inline-grid;place-items:center;font-size:11px;color:#fff;flex:none;vertical-align:middle}
+  .rede-ic.instagram{background:linear-gradient(45deg,#f09433,#dc2743 50%,#bc1888)}
+  .rede-ic.facebook{background:#1877f2}
+  .rede-ic.youtube{background:#ff0000}
+  .rede-ic.tiktok{background:#111}
+  .btn .rede-ic{width:20px;height:20px;font-size:12px}
+  .conta .foto{position:relative;flex:none}
+  .conta .foto .rede-ic{position:absolute;right:-4px;bottom:-4px;border:2px solid #fff;box-sizing:content-box}
   .remover{background:none;border:0;color:var(--suave);font:inherit;font-size:13px;cursor:pointer;text-decoration:underline}
   .vazio{color:var(--suave);font-size:14px;padding:18px;text-align:center;border:1px dashed var(--borda);border-radius:10px}
   .marca-nova label{display:block;font-size:13px;font-weight:600;margin-bottom:6px}
@@ -85,15 +94,15 @@
 
   <section id="painel" hidden>
     <div class="conectar">
-      <button class="btn principal" id="conectarIg">+ Conectar Instagram</button>
-      <button class="btn" disabled title="Em breve">+ Facebook (em breve)</button>
-      <button class="btn" disabled title="Em breve">+ YouTube (em breve)</button>
-      <button class="btn" disabled title="Em breve">+ TikTok (em breve)</button>
+      <button class="btn principal" id="conectarIg"><span class="rede-ic instagram"><i class="fa-brands fa-instagram"></i></span> Conectar Instagram</button>
+      <button class="btn" disabled title="Em breve"><span class="rede-ic facebook"><i class="fa-brands fa-facebook-f"></i></span> Facebook (em breve)</button>
+      <button class="btn" disabled title="Em breve"><span class="rede-ic youtube"><i class="fa-brands fa-youtube"></i></span> YouTube (em breve)</button>
+      <button class="btn" disabled title="Em breve"><span class="rede-ic tiktok"><i class="fa-brands fa-tiktok"></i></span> TikTok (em breve)</button>
     </div>
     <div class="lista" id="lista"></div>
   </section>
 </main>
-<footer>Clic Redes · contas.html v1.3</footer>
+<footer>Clic Redes · contas.html v1.4</footer>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
@@ -102,6 +111,14 @@
   const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
   const REDES = { instagram: "Instagram", facebook: "Facebook", youtube: "YouTube", tiktok: "TikTok" };
+  const ICONE = {
+    instagram: '<i class="fa-brands fa-instagram"></i>',
+    facebook: '<i class="fa-brands fa-facebook-f"></i>',
+    youtube: '<i class="fa-brands fa-youtube"></i>',
+    tiktok: '<i class="fa-brands fa-tiktok"></i>',
+  };
+  const icone = (rede) => `<span class="rede-ic ${rede}" title="${rede}">${ICONE[rede] || ""}</span>`;
+
   const ERROS = {
     cancelado: "Conexão cancelada no Instagram.",
     retorno_invalido: "O Instagram não devolveu os dados. Tente de novo.",
@@ -180,7 +197,7 @@
       const validade = c.token_expira_em
         ? ` · acesso válido até ${new Date(c.token_expira_em).toLocaleDateString("pt-BR")}` : "";
       return `<div class="conta">
-        ${foto}
+        <div class="foto">${foto}${icone(c.rede)}</div>
         <div class="info">
           <div class="nome">${esc(c.nome || c.usuario)}</div>
           <div class="det">${REDES[c.rede] || c.rede} · @${esc(c.usuario)}${validade}</div>
@@ -219,7 +236,7 @@
     });
     if (error || !data?.url) {
       mostrarAviso("Não foi possível iniciar a conexão. Tente de novo.", "erro");
-      btn.disabled = false; btn.textContent = "+ Conectar Instagram";
+      btn.disabled = false; btn.innerHTML = '<span class="rede-ic instagram"><i class="fa-brands fa-instagram"></i></span> Conectar Instagram';
       return;
     }
     location.href = data.url;
