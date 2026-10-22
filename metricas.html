@@ -171,7 +171,7 @@
     </section>
   </div>
 </main>
-<footer>Clic Redes · metricas.html v1.4</footer>
+<footer>Clic Redes · metricas.html v1.5</footer>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
@@ -223,7 +223,7 @@
     if (!marcas?.length) { location.href = "contas.html"; return; }
     const { data: cs } = await sb.from("contas_redes")
       .select("id, rede, nome, usuario").eq("marca_id", marcas[0].id).eq("ativo", true).order("criado_em");
-    contas = (cs || []).filter((c) => ["instagram", "facebook", "youtube"].includes(c.rede));
+    contas = (cs || []).filter((c) => ["instagram", "facebook", "youtube", "tiktok"].includes(c.rede));
     if (!contas.length) { $("semConta").hidden = false; $("atualizar").disabled = true; return; }
     $("conta").innerHTML = (contas.length > 1 ? `<option value="${TODAS}">Todas as contas (${contas.length})</option>` : "") +
       contas.map((c) => `<option value="${c.id}">${REDE[c.rede]} · ${esc(nomeConta(c))}</option>`).join("");
