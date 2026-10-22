@@ -75,6 +75,9 @@
   .rede-ic.facebook{background:#1877f2}
   .rede-ic.youtube{background:#ff0000}
   .rede-ic.tiktok{background:#111}
+  .yt-linha{display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-top:8px}
+  .yt-linha select{font:inherit;font-size:14px;padding:9px 10px;border:1px solid var(--borda);border-radius:9px;background:#fff;color:var(--texto)}
+  .yt-linha .opcao{margin-top:0}
 
   /* Lista */
   .lista{background:var(--cartao);border:1px solid var(--borda);border-radius:10px;overflow:hidden}
@@ -164,7 +167,7 @@
   <div class="aviso" id="aviso"></div>
   <div id="area"></div>
 </main>
-<footer>Clic Redes · planejamento.html v1.5 · horários de Brasília</footer>
+<footer>Clic Redes · planejamento.html v1.6 · horários de Brasília</footer>
 
 <!-- Editor de post -->
 <div class="fundo-modal" id="fundoModal">
@@ -190,6 +193,19 @@
     <input type="text" id="comentario" placeholder="Ex.: hashtags extras ou link">
 
     <label class="opcao" id="opFeed"><input type="checkbox" id="mostrarFeed" checked> Mostrar o Reel também no feed</label>
+
+    <div id="opYoutube" style="display:none">
+      <div class="rotulo"><span class="rede-ic youtube"><i class="fa-brands fa-youtube"></i></span> YouTube <small>o texto acima vira a descrição</small></div>
+      <input type="text" id="ytTitulo" maxlength="100" placeholder="Título do vídeo (se ficar vazio, usa a 1ª linha do texto)">
+      <div class="yt-linha">
+        <select id="ytPrivacidade">
+          <option value="public">Público</option>
+          <option value="unlisted">Não listado</option>
+          <option value="private">Privado</option>
+        </select>
+        <label class="opcao"><input type="checkbox" id="ytCriancas"> Conteúdo para crianças</label>
+      </div>
+    </div>
 
     <div class="rotulo">Data e hora</div>
     <input type="datetime-local" id="quando">
@@ -291,7 +307,7 @@
 
   async function carregarPosts() {
     let consulta = sb.from("posts")
-      .select("id, texto, observacoes, agendado_para, status, post_redes(id, conta_id, tipo, primeiro_comentario, mostrar_no_feed, status, link, erro), post_midias(id, caminho, tipo, ordem)")
+      .select("id, texto, observacoes, agendado_para, status, post_redes(id, conta_id, tipo, primeiro_comentario, mostrar_no_feed, titulo, privacidade, para_criancas, status, link, erro), post_midias(id, caminho, tipo, ordem)")
       .eq("marca_id", marca.id)
       .is("excluido_em", null);
 
@@ -443,6 +459,12 @@
     $("texto").value = post?.texto || "";
     $("comentario").value = pr0?.primeiro_comentario || "";
     $("mostrarFeed").checked = pr0 ? pr0.mostrar_no_feed : true;
+    const prYt = (post?.post_redes || []).find((pr) => (contas.find((c) => c.id === pr.conta_id) || {}).rede === "youtube");
+    $("ytTitulo").value = prYt?.titulo || "";
+    $("ytPrivacidade").value = prYt?.privacidade || "public";
+    let lembrouCriancas = false;
+    try { lembrouCriancas = localStorage.getItem("clicredes_yt_criancas") === "1"; } catch (_) { /* sem armazenamento */ }
+    $("ytCriancas").checked = prYt ? !!prYt.para_criancas : lembrouCriancas;
     $("obs").value = post?.observacoes || "";
     const quando = post?.agendado_para ? new Date(post.agendado_para)
       : dataSugerida || proximaHoraCheia();
@@ -516,8 +538,11 @@
   function atualizarDicas() {
     const tipos = tiposEscolhidos().map((t) => t.tipo);
     $("opFeed").style.display = tipos.includes("reel") ? "flex" : "none";
+    const temYt = tiposEscolhidos().some((t) => (contas.find((c) => c.id === t.conta_id) || {}).rede === "youtube");
+    $("opYoutube").style.display = temYt ? "block" : "none";
     let dica = "";
     if (tipos.includes("reel")) dica = "Reel: 1 vídeo";
+    else if (temYt) dica = "YouTube: 1 vídeo";
     else if (tipos.includes("carrossel")) dica = "Carrossel: 2 a 20 fotos/vídeos";
     else if (tipos.includes("story")) dica = "Story: 1 foto ou vídeo";
     else if (tipos.includes("post")) dica = "Post: 1 foto ou vídeo";
@@ -590,6 +615,7 @@
     for (const { tipo, conta_id } of escolhidos) {
       const rede = (contas.find((c) => c.id === conta_id) || {}).rede;
       if (tipo === "reel" && (videos !== 1 || fotos)) return "Reel precisa de exatamente 1 vídeo.";
+      if (rede === "youtube" && (videos !== 1 || fotos)) return "No YouTube o post precisa de exatamente 1 vídeo (sem fotos).";
       if (tipo === "post" && rede === "facebook" && midias.length > 1) return "No Facebook, o post aceita só texto, 1 foto ou 1 vídeo.";
       if (tipo === "post" && rede !== "facebook" && midias.length !== 1) return "Post no Instagram precisa de 1 foto ou 1 vídeo. Para mais, use Carrossel.";
       if (tipo === "story" && midias.length !== 1) return "Story precisa de 1 foto ou 1 vídeo.";
@@ -660,6 +686,10 @@
       const escolhidos = tiposEscolhidos();
       const comentario = $("comentario").value.trim() || null;
       const noFeed = $("mostrarFeed").checked;
+      const ytTitulo = $("ytTitulo").value.trim() || null;
+      const ytPrivacidade = $("ytPrivacidade").value;
+      const ytCriancas = $("ytCriancas").checked;
+      try { localStorage.setItem("clicredes_yt_criancas", ytCriancas ? "1" : "0"); } catch (_) { /* sem armazenamento */ }
       const idsEscolhidos = escolhidos.map((e) => e.conta_id);
       const antigos = (editando?.post_redes || []).map((pr) => pr.conta_id);
       const tirar = antigos.filter((id) => !idsEscolhidos.includes(id));
@@ -673,6 +703,9 @@
           tipo: e.tipo,
           primeiro_comentario: comentario,
           mostrar_no_feed: noFeed,
+          titulo: ytTitulo,
+          privacidade: ytPrivacidade,
+          para_criancas: ytCriancas,
           status: "pendente",
           erro: null,
         })),
