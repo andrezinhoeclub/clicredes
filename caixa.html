@@ -83,6 +83,10 @@
   .bolha.deles{background:#fff;border:1px solid var(--borda);align-self:flex-start;border-bottom-left-radius:4px}
   .bolha.minha{background:var(--marca);color:#fff;align-self:flex-end;border-bottom-right-radius:4px}
   .bolha small{display:block;font-size:11px;opacity:.7;margin-top:3px}
+  .aviso-dm{margin:0 12px 0;padding:10px 12px;border-radius:10px;background:#fffaeb;color:#93370d;font-size:13px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+  .aviso-dm.forte{background:#fef3f2;color:#b42318}
+  .aviso-dm span{flex:1;min-width:220px}
+  .aviso-dm a{white-space:nowrap;font-weight:600;color:inherit;border:1px solid currentColor;border-radius:8px;padding:6px 10px;text-decoration:none}
   .responder{border-top:1px solid var(--borda);padding:12px;display:flex;flex-direction:column;gap:8px}
   .responder textarea{width:100%;font:inherit;font-size:14px;padding:10px 12px;border:1px solid var(--borda);border-radius:9px;resize:vertical;min-height:64px}
   .responder textarea:focus{outline:2px solid var(--marca);outline-offset:-1px;border-color:transparent}
@@ -159,6 +163,10 @@
           <button class="btn" id="resolver">Marcar como resolvida</button>
         </div>
         <div class="msgs" id="msgs"></div>
+        <div class="aviso-dm" id="avisoDm" hidden>
+          <span id="avisoDmTexto">Enquanto o app não passa pela análise da Meta, o Instagram pode bloquear a resposta de Direct pelo Clic Redes. Se der erro, responda pelo app do Instagram.</span>
+          <a href="https://www.instagram.com/direct/inbox/" target="_blank" rel="noopener">Abrir o Direct ↗</a>
+        </div>
         <div class="responder">
           <textarea id="resposta" placeholder="Escreva sua resposta..." maxlength="1000"></textarea>
           <div class="l">
@@ -170,7 +178,7 @@
     </section>
   </div>
 </main>
-<footer>Clic Redes · caixa.html v1.1</footer>
+<footer>Clic Redes · caixa.html v1.2</footer>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
@@ -318,6 +326,8 @@
       ? `Direct · para @${esc(conta?.usuario)}`
       : `Comentário · @${esc(conta?.usuario)}${link ? ` · <a href="${esc(link)}" target="_blank" rel="noopener">ver post</a>` : ""}`;
     $("resolver").textContent = c.resolvida ? "Reabrir" : "Marcar como resolvida";
+    $("avisoDm").hidden = c.tipo !== "mensagem";
+    $("avisoDm").classList.remove("forte");
     $("dica").textContent = c.tipo === "mensagem"
       ? "Pelo Instagram, só dá para responder até 24h após a última mensagem da pessoa."
       : "A resposta aparece embaixo do comentário, no post.";
@@ -348,11 +358,21 @@
     if (error || data?.erro) {
       let msg = data?.erro;
       if (!msg && error?.context) { try { msg = (await error.context.json()).erro; } catch (_) { /* sem corpo */ } }
+      // Direct bloqueado pela Meta enquanto o app nao passa pela analise
+      if (atual.tipo === "mensagem" && /\(#10\)|per[ií]odo permitido|24 horas|window/i.test(msg || "")) {
+        $("avisoDmTexto").textContent = "A Meta bloqueou esta resposta de Direct (o app ainda não passou pela análise). Copie o texto e responda pelo app do Instagram.";
+        $("avisoDm").classList.add("forte");
+        $("avisoDm").hidden = false;
+        return;
+      }
       mostrarAviso(msg || "Não foi possível enviar.", "erro");
       return;
     }
     $("resposta").value = "";
-    mostrarAviso("Resposta enviada.", "ok");
+    // Respondeu: a conversa sai de "Não resolvidas"
+    await sb.from("conversas").update({ resolvida: true, lida: true }).eq("id", atual.id);
+    atual.resolvida = true;
+    mostrarAviso("Resposta enviada. A conversa foi marcada como resolvida.", "ok");
     await carregar();
   }
 
