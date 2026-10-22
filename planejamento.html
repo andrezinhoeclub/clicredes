@@ -78,6 +78,9 @@
   .yt-linha{display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-top:8px}
   .yt-linha select{font:inherit;font-size:14px;padding:9px 10px;border:1px solid var(--borda);border-radius:9px;background:#fff;color:var(--texto)}
   .yt-linha .opcao{margin-top:0}
+  .tt-aviso{font-size:13px;padding:8px 10px;border-radius:8px;background:#fff7e6;color:#8a5a00;margin-top:6px}
+  .tt-declara{font-size:12.5px;color:var(--suave);margin:8px 0 0}
+  .tt-declara a{color:inherit}
 
   /* Lista */
   .lista{background:var(--cartao);border:1px solid var(--borda);border-radius:10px;overflow:hidden}
@@ -167,7 +170,7 @@
   <div class="aviso" id="aviso"></div>
   <div id="area"></div>
 </main>
-<footer>Clic Redes · planejamento.html v1.6 · horários de Brasília</footer>
+<footer>Clic Redes · planejamento.html v1.7 · horários de Brasília</footer>
 
 <!-- Editor de post -->
 <div class="fundo-modal" id="fundoModal">
@@ -205,6 +208,25 @@
         </select>
         <label class="opcao"><input type="checkbox" id="ytCriancas"> Conteúdo para crianças</label>
       </div>
+    </div>
+
+    <div id="opTiktok" style="display:none">
+      <div class="rotulo"><span class="rede-ic tiktok"><i class="fa-brands fa-tiktok"></i></span> TikTok <small id="ttQuem">o texto acima vira a legenda</small></div>
+      <div class="tt-aviso" id="ttAviso" hidden></div>
+      <div class="yt-linha">
+        <select id="ttPrivacidade"><option value="">Quem pode ver este vídeo?</option></select>
+      </div>
+      <div class="yt-linha">
+        <label class="opcao"><input type="checkbox" id="ttComentarios"> Permitir comentários</label>
+        <label class="opcao"><input type="checkbox" id="ttDueto"> Permitir Dueto</label>
+        <label class="opcao"><input type="checkbox" id="ttStitch"> Permitir Stitch</label>
+      </div>
+      <label class="opcao"><input type="checkbox" id="ttComercial"> Divulgar conteúdo comercial (publicidade ou parceria)</label>
+      <div id="ttComercialOp" class="yt-linha" hidden>
+        <label class="opcao"><input type="checkbox" id="ttMarcaPropria"> Sua marca (promove você ou seu negócio)</label>
+        <label class="opcao"><input type="checkbox" id="ttConteudoMarca"> Conteúdo de marca (parceria paga com terceiros)</label>
+      </div>
+      <p class="tt-declara" id="ttDeclara"></p>
     </div>
 
     <div class="rotulo">Data e hora</div>
@@ -307,7 +329,7 @@
 
   async function carregarPosts() {
     let consulta = sb.from("posts")
-      .select("id, texto, observacoes, agendado_para, status, post_redes(id, conta_id, tipo, primeiro_comentario, mostrar_no_feed, titulo, privacidade, para_criancas, status, link, erro), post_midias(id, caminho, tipo, ordem)")
+      .select("id, texto, observacoes, agendado_para, status, post_redes(id, conta_id, tipo, primeiro_comentario, mostrar_no_feed, titulo, privacidade, para_criancas, opcoes, status, link, erro), post_midias(id, caminho, tipo, ordem)")
       .eq("marca_id", marca.id)
       .is("excluido_em", null);
 
@@ -465,6 +487,15 @@
     let lembrouCriancas = false;
     try { lembrouCriancas = localStorage.getItem("clicredes_yt_criancas") === "1"; } catch (_) { /* sem armazenamento */ }
     $("ytCriancas").checked = prYt ? !!prYt.para_criancas : lembrouCriancas;
+    const prTt = (post?.post_redes || []).find((pr) => (contas.find((c) => c.id === pr.conta_id) || {}).rede === "tiktok");
+    ttSalvo = prTt?.opcoes || {};
+    ttContaLida = null;
+    $("ttComentarios").checked = !!ttSalvo.comentarios;
+    $("ttDueto").checked = !!ttSalvo.dueto;
+    $("ttStitch").checked = !!ttSalvo.stitch;
+    $("ttMarcaPropria").checked = !!ttSalvo.marca_propria;
+    $("ttConteudoMarca").checked = !!ttSalvo.conteudo_marca;
+    $("ttComercial").checked = !!(ttSalvo.marca_propria || ttSalvo.conteudo_marca);
     $("obs").value = post?.observacoes || "";
     const quando = post?.agendado_para ? new Date(post.agendado_para)
       : dataSugerida || proximaHoraCheia();
@@ -540,9 +571,13 @@
     $("opFeed").style.display = tipos.includes("reel") ? "flex" : "none";
     const temYt = tiposEscolhidos().some((t) => (contas.find((c) => c.id === t.conta_id) || {}).rede === "youtube");
     $("opYoutube").style.display = temYt ? "block" : "none";
+    const ttEscolhida = tiposEscolhidos().find((t) => (contas.find((c) => c.id === t.conta_id) || {}).rede === "tiktok");
+    $("opTiktok").style.display = ttEscolhida ? "block" : "none";
+    if (ttEscolhida) carregarCriadorTiktok(ttEscolhida.conta_id);
+    atualizarComercialTiktok();
     let dica = "";
     if (tipos.includes("reel")) dica = "Reel: 1 vídeo";
-    else if (temYt) dica = "YouTube: 1 vídeo";
+    else if (temYt || ttEscolhida) dica = "YouTube/TikTok: 1 vídeo";
     else if (tipos.includes("carrossel")) dica = "Carrossel: 2 a 20 fotos/vídeos";
     else if (tipos.includes("story")) dica = "Story: 1 foto ou vídeo";
     else if (tipos.includes("post")) dica = "Post: 1 foto ou vídeo";
@@ -596,6 +631,82 @@
     desenharMidias();
   });
 
+  // ---------- TikTok: opcoes do perfil (o TikTok exige mostrar no editor) ----------
+  const TT_PRIV = {
+    PUBLIC_TO_EVERYONE: "Todos",
+    MUTUAL_FOLLOW_FRIENDS: "Amigos (seguidores que você segue de volta)",
+    FOLLOWER_OF_CREATOR: "Seguidores",
+    SELF_ONLY: "Somente eu",
+  };
+  let ttSalvo = {};
+  let ttContaLida = null;
+  let ttCriador = null;
+
+  async function carregarCriadorTiktok(contaId) {
+    if (ttContaLida === contaId) return;
+    ttContaLida = contaId;
+    ttCriador = null;
+    const aviso = $("ttAviso");
+    aviso.hidden = true;
+    $("ttQuem").textContent = "lendo as opções do perfil...";
+    const { data, error } = await sb.functions.invoke("tiktok-criador", { body: { conta_id: contaId } });
+    if (ttContaLida !== contaId) return;
+    if (error || !data || data.erro) {
+      let msg = data?.erro;
+      if (!msg && error?.context) { try { msg = (await error.context.json()).erro; } catch (_) { /* sem corpo */ } }
+      aviso.textContent = "Não foi possível ler o perfil do TikTok agora: " + (msg || "tente de novo.") + " Você pode salvar como rascunho.";
+      aviso.hidden = false;
+      $("ttQuem").textContent = "o texto acima vira a legenda";
+      return;
+    }
+    ttCriador = data;
+    $("ttQuem").textContent = `postando como ${data.apelido || ""}${data.usuario ? " (@" + data.usuario + ")" : ""}`;
+    const sel = $("ttPrivacidade");
+    sel.innerHTML = '<option value="">Quem pode ver este vídeo?</option>' +
+      (data.privacidades || []).map((v) => `<option value="${v}">${TT_PRIV[v] || v}</option>`).join("");
+    if (ttSalvo.privacidade && (data.privacidades || []).includes(ttSalvo.privacidade)) sel.value = ttSalvo.privacidade;
+    [["ttComentarios", data.comentario_desligado], ["ttDueto", data.dueto_desligado], ["ttStitch", data.stitch_desligado]]
+      .forEach(([id, desligado]) => {
+        $(id).disabled = !!desligado;
+        if (desligado) $(id).checked = false;
+        $(id).closest("label").title = desligado ? "Desligado nas configurações do perfil no TikTok" : "";
+      });
+    atualizarComercialTiktok();
+  }
+
+  function atualizarComercialTiktok() {
+    const comercial = $("ttComercial").checked;
+    $("ttComercialOp").hidden = !comercial;
+    if (!comercial) { $("ttMarcaPropria").checked = false; $("ttConteudoMarca").checked = false; }
+    const marca = $("ttConteudoMarca").checked;
+    // Conteudo de marca nao pode ser "Somente eu"
+    const so = [...$("ttPrivacidade").options].find((o) => o.value === "SELF_ONLY");
+    if (so) {
+      so.disabled = marca;
+      if (marca && $("ttPrivacidade").value === "SELF_ONLY") $("ttPrivacidade").value = "";
+    }
+    const musica = '<a href="https://www.tiktok.com/legal/page/global/music-usage-confirmation/en" target="_blank" rel="noopener">Confirmação de Uso de Música</a>';
+    const marcaPol = '<a href="https://www.tiktok.com/legal/page/global/bc-policy/en" target="_blank" rel="noopener">Política de Conteúdo de Marca</a>';
+    $("ttDeclara").innerHTML = marca
+      ? `Ao agendar, você concorda com a ${marcaPol} e a ${musica} do TikTok. O vídeo será marcado como "Parceria paga".`
+      : comercial && $("ttMarcaPropria").checked
+        ? `Ao agendar, você concorda com a ${musica} do TikTok. O vídeo será marcado como "Conteúdo promocional".`
+        : `Ao agendar, você concorda com a ${musica} do TikTok. Depois de publicado, o TikTok pode levar alguns minutos para processar o vídeo.`;
+  }
+  ["ttComercial", "ttMarcaPropria", "ttConteudoMarca"].forEach((id) => $(id).addEventListener("change", atualizarComercialTiktok));
+
+  // Duracao de um video novo (para conferir o limite do TikTok)
+  function duracaoVideo(m) {
+    return new Promise((ok) => {
+      if (!m.previa) return ok(0);
+      const v = document.createElement("video");
+      v.preload = "metadata";
+      v.onloadedmetadata = () => ok(v.duration || 0);
+      v.onerror = () => ok(0);
+      v.src = m.previa;
+    });
+  }
+
   function validar(paraAgendar) {
     const escolhidos = tiposEscolhidos();
     if (!escolhidos.length) return "Escolha pelo menos uma conta.";
@@ -616,6 +727,13 @@
       const rede = (contas.find((c) => c.id === conta_id) || {}).rede;
       if (tipo === "reel" && (videos !== 1 || fotos)) return "Reel precisa de exatamente 1 vídeo.";
       if (rede === "youtube" && (videos !== 1 || fotos)) return "No YouTube o post precisa de exatamente 1 vídeo (sem fotos).";
+      if (rede === "tiktok") {
+        if (videos !== 1 || fotos) return "No TikTok o post precisa de exatamente 1 vídeo (sem fotos).";
+        if (!ttCriador) return "Ainda não foi possível ler o perfil do TikTok. Espere carregar ou salve como rascunho.";
+        if (!$("ttPrivacidade").value) return "Escolha quem pode ver o vídeo no TikTok.";
+        if ($("ttComercial").checked && !$("ttMarcaPropria").checked && !$("ttConteudoMarca").checked)
+          return "No TikTok, marque se o conteúdo comercial é da sua marca ou de marca parceira.";
+      }
       if (tipo === "post" && rede === "facebook" && midias.length > 1) return "No Facebook, o post aceita só texto, 1 foto ou 1 vídeo.";
       if (tipo === "post" && rede !== "facebook" && midias.length !== 1) return "Post no Instagram precisa de 1 foto ou 1 vídeo. Para mais, use Carrossel.";
       if (tipo === "story" && midias.length !== 1) return "Story precisa de 1 foto ou 1 vídeo.";
@@ -625,7 +743,13 @@
   }
 
   async function salvar(status) {
-    const erro = validar(status === "agendado");
+    let erro = validar(status === "agendado");
+    const comTiktok = tiposEscolhidos().some((t) => (contas.find((c) => c.id === t.conta_id) || {}).rede === "tiktok");
+    if (!erro && status === "agendado" && comTiktok && ttCriador?.duracao_max) {
+      const v = midias.find((m) => m.tipo === "video");
+      const seg = v ? await duracaoVideo(v) : 0;
+      if (seg > ttCriador.duracao_max) erro = `O vídeo tem ${Math.round(seg)} s, e esse perfil do TikTok aceita até ${ttCriador.duracao_max} s.`;
+    }
     $("erroForm").textContent = erro;
     if (erro) return;
 
@@ -690,6 +814,15 @@
       const ytPrivacidade = $("ytPrivacidade").value;
       const ytCriancas = $("ytCriancas").checked;
       try { localStorage.setItem("clicredes_yt_criancas", ytCriancas ? "1" : "0"); } catch (_) { /* sem armazenamento */ }
+      const ttOpcoes = {
+        privacidade: $("ttPrivacidade").value || null,
+        comentarios: $("ttComentarios").checked,
+        dueto: $("ttDueto").checked,
+        stitch: $("ttStitch").checked,
+        marca_propria: $("ttMarcaPropria").checked,
+        conteudo_marca: $("ttConteudoMarca").checked,
+      };
+      const redeDe = (id) => (contas.find((c) => c.id === id) || {}).rede;
       const idsEscolhidos = escolhidos.map((e) => e.conta_id);
       const antigos = (editando?.post_redes || []).map((pr) => pr.conta_id);
       const tirar = antigos.filter((id) => !idsEscolhidos.includes(id));
@@ -706,6 +839,7 @@
           titulo: ytTitulo,
           privacidade: ytPrivacidade,
           para_criancas: ytCriancas,
+          opcoes: redeDe(e.conta_id) === "tiktok" ? ttOpcoes : {},
           status: "pendente",
           erro: null,
         })),
