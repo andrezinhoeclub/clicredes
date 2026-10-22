@@ -97,14 +97,14 @@
     <div class="conectar">
       <button class="btn principal" id="conectarFb" title="Traz as Páginas do Facebook e os Instagrams ligados a elas"><span class="rede-ic facebook"><i class="fa-brands fa-facebook-f"></i></span> Conectar com Facebook</button>
       <button class="btn" id="conectarIg" title="Para Instagram sem Página do Facebook (precisa ser testador do app)"><span class="rede-ic instagram"><i class="fa-brands fa-instagram"></i></span> Conectar só o Instagram</button>
-      <button class="btn" disabled title="Em breve"><span class="rede-ic youtube"><i class="fa-brands fa-youtube"></i></span> YouTube (em breve)</button>
+      <button class="btn" id="conectarYt" title="Conecta um canal do YouTube pelo login do Google"><span class="rede-ic youtube"><i class="fa-brands fa-youtube"></i></span> Conectar YouTube</button>
       <button class="btn" disabled title="Em breve"><span class="rede-ic tiktok"><i class="fa-brands fa-tiktok"></i></span> TikTok (em breve)</button>
     </div>
-    <p class="dica">Use <b>Conectar com Facebook</b> para trazer as Páginas e os Instagrams ligados a elas. <b>Conectar só o Instagram</b> é para contas sem Página do Facebook.</p>
+    <p class="dica">Use <b>Conectar com Facebook</b> para trazer as Páginas e os Instagrams ligados a elas. <b>Conectar só o Instagram</b> é para contas sem Página do Facebook. <b>Conectar YouTube</b> abre o login do Google: entre com o e-mail dono do canal.</p>
     <div class="lista" id="lista"></div>
   </section>
 </main>
-<footer>Clic Redes · contas.html v1.5</footer>
+<footer>Clic Redes · contas.html v1.6</footer>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
@@ -131,6 +131,10 @@
     perfil: "Não foi possível ler o perfil. A conta precisa ser profissional.",
     salvar: "A conta foi autorizada, mas não foi salva. Tente de novo.",
     inesperado: "Erro inesperado. Tente de novo em alguns minutos.",
+    yt_permissoes: "Na tela do Google, deixe marcadas todas as permissões do YouTube e tente de novo.",
+    troca_codigo_yt: "O Google recusou a autorização. Tente de novo.",
+    sem_canal: "Essa conta Google não tem canal no YouTube. Escolha a conta (ou o canal) certo.",
+    sem_refresh: "O Google não liberou o acesso contínuo. Remova o Clic Redes em myaccount.google.com/permissions e conecte de novo.",
   };
 
   let marca = null;
@@ -153,6 +157,8 @@
     if (p.get("conectado") === "facebook") {
       const pg = Number(p.get("paginas") || 0), ig = Number(p.get("instagrams") || 0);
       mostrarAviso(`Facebook conectado: ${pg} Página(s) e ${ig} Instagram(s) ligados a elas.`, "ok");
+    } else if (p.get("conectado") === "youtube") {
+      mostrarAviso(`Canal do YouTube "${p.get("canal") || ""}" conectado com sucesso.`, "ok");
     } else if (p.get("conectado")) {
       mostrarAviso(`Instagram @${p.get("usuario") || ""} conectado com sucesso.`, "ok");
     } else if (p.get("erro")) {
@@ -206,10 +212,10 @@
         <div class="foto">${foto}${icone(c.rede)}</div>
         <div class="info">
           <div class="nome">${esc(c.nome || c.usuario)}</div>
-          <div class="det">${REDES[c.rede] || c.rede} · ${c.rede === "facebook" ? "Página" : "@" + esc(c.usuario)}${c.rede === "instagram" && c.via === "facebook" ? " · pelo Facebook" : ""}${validade}</div>
+          <div class="det">${REDES[c.rede] || c.rede} · ${c.rede === "facebook" ? "Página" : c.rede === "youtube" ? "Canal" : "@" + esc(c.usuario)}${c.rede === "instagram" && c.via === "facebook" ? " · pelo Facebook" : ""}${validade}</div>
         </div>
         ${selo}
-        <button class="remover" data-id="${c.id}" data-nome="${esc(c.usuario)}">Remover</button>
+        <button class="remover" data-id="${c.id}" data-nome="${esc(c.nome || c.usuario)}">Remover</button>
       </div>`;
     }).join("");
 
@@ -218,10 +224,10 @@
   }
 
   async function remover(id, nome) {
-    if (!confirm(`Remover @${nome} do Clic Redes? Os posts agendados para ela deixam de sair.`)) return;
+    if (!confirm(`Remover ${nome} do Clic Redes? Os posts agendados para ela deixam de sair.`)) return;
     const { error } = await sb.from("contas_redes").delete().eq("id", id);
     if (error) mostrarAviso("Não foi possível remover.", "erro");
-    else { mostrarAviso(`@${nome} removida.`, "ok"); carregarContas(); }
+    else { mostrarAviso(`${nome} removida.`, "ok"); carregarContas(); }
   }
 
   $("criarMarca").addEventListener("click", async () => {
@@ -249,6 +255,7 @@
     location.href = data.url;
   }
   $("conectarFb").addEventListener("click", () => conectar("conectarFb", "facebook-iniciar", "Abrindo o Facebook..."));
+  $("conectarYt").addEventListener("click", () => conectar("conectarYt", "youtube-iniciar", "Abrindo o Google..."));
   $("conectarIg").addEventListener("click", () => conectar("conectarIg", "instagram-iniciar", "Abrindo o Instagram..."));
 
   $("sair").addEventListener("click", async () => {
