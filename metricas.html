@@ -126,7 +126,7 @@
 
     <section class="linha2">
       <div class="bloco">
-        <h2>Seguidores</h2>
+        <h2 id="tituloSeg">Seguidores</h2>
         <p class="desc">Total no fim de cada dia</p>
         <div id="gSeguidores"></div>
       </div>
@@ -154,7 +154,7 @@
     </section>
   </div>
 </main>
-<footer>Clic Redes · metricas.html v1.2</footer>
+<footer>Clic Redes · metricas.html v1.3</footer>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
@@ -196,9 +196,9 @@
     if (!marcas?.length) { location.href = "contas.html"; return; }
     const { data: cs } = await sb.from("contas_redes")
       .select("id, rede, nome, usuario").eq("marca_id", marcas[0].id).eq("ativo", true).order("criado_em");
-    contas = (cs || []).filter((c) => c.rede === "instagram" || c.rede === "facebook");
+    contas = (cs || []).filter((c) => ["instagram", "facebook", "youtube"].includes(c.rede));
     if (!contas.length) { $("semConta").hidden = false; $("atualizar").disabled = true; return; }
-    $("conta").innerHTML = contas.map((c) => `<option value="${c.id}">${c.rede === "facebook" ? "Facebook · " + esc(c.nome || c.usuario) : "Instagram · @" + esc(c.usuario)}</option>`).join("");
+    $("conta").innerHTML = contas.map((c) => `<option value="${c.id}">${c.rede === "facebook" ? "Facebook · " + esc(c.nome || c.usuario) : c.rede === "youtube" ? "YouTube · " + esc(c.nome || c.usuario) : "Instagram · @" + esc(c.usuario)}</option>`).join("");
     contaId = contas[0].id;
     $("painel").hidden = false;
     await carregar();
@@ -222,6 +222,9 @@
     $("atualizado").textContent = ultima
       ? "Atualizado " + new Date(ultima).toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" }) : "Ainda sem dados";
 
+    const ehYt = (contas.find((c) => c.id === contaId) || {}).rede === "youtube";
+    rotuloSeg = ehYt ? "Inscritos" : "Seguidores";
+    $("tituloSeg").textContent = rotuloSeg;
     desenharKpis();
     $("gSeguidores").innerHTML = graficoLinha(diarias.filter((d) => d.seguidores != null), "seguidores");
     $("gVisualizacoes").innerHTML = graficoBarras(diarias.filter((d) => d.visualizacoes != null), "visualizacoes");
@@ -229,6 +232,7 @@
     desenharTabela();
   }
 
+  let rotuloSeg = "Seguidores";
   function desenharKpis() {
     const comSeg = diarias.filter((d) => d.seguidores != null);
     const segAtual = comSeg.length ? comSeg[comSeg.length - 1].seguidores : null;
@@ -241,13 +245,13 @@
       return v.length ? v.reduce((s, d) => s + d[campo], 0) : null;
     };
     const interPosts = postsPeriodo.reduce((s, p) => s + (p.curtidas || 0) + (p.comentarios || 0) + (p.salvos || 0) + (p.compartilhamentos || 0), 0);
-    const alcPosts = postsPeriodo.reduce((s, p) => s + (p.alcance || 0), 0);
+    const alcPosts = postsPeriodo.reduce((s, p) => s + (p.alcance || p.visualizacoes || 0), 0);
     const engaj = alcPosts ? (interPosts / alcPosts) * 100 : null;
 
     const kpi = (nome, valor, varTxt, classe) => `<div class="kpi"><div class="nome">${nome}</div>
       <div class="valor">${valor}</div><div class="var ${classe || ""}">${varTxt || "&nbsp;"}</div></div>`;
     $("kpis").innerHTML =
-      kpi("Seguidores", num(segAtual),
+      kpi(rotuloSeg, num(segAtual),
         dif == null ? "" : `${dif >= 0 ? "+" : ""}${num(dif)} no período`, dif > 0 ? "sobe" : dif < 0 ? "desce" : "") +
       kpi("Visualizações", num(soma("visualizacoes")), `últimos ${dias} dias`) +
       kpi("Alcance", num(soma("alcance")), "soma dos dias") +
@@ -352,8 +356,9 @@
     ["comentarios", "Coment."], ["salvos", "Salvos"], ["compartilhamentos", "Compart."], ["engaj", "Engaj."],
   ];
   function engajamento(p) {
-    if (!p.alcance) return null;
-    return ((p.curtidas || 0) + (p.comentarios || 0) + (p.salvos || 0) + (p.compartilhamentos || 0)) / p.alcance * 100;
+    const base = p.alcance || p.visualizacoes; // YouTube nao tem alcance: usa visualizacoes
+    if (!base) return null;
+    return ((p.curtidas || 0) + (p.comentarios || 0) + (p.salvos || 0) + (p.compartilhamentos || 0)) / base * 100;
   }
 
   function desenharTabela() {
