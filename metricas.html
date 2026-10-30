@@ -171,7 +171,7 @@
     </section>
   </div>
 </main>
-<footer>Clic Redes · metricas.html v1.7</footer>
+<footer>Clic Redes · metricas.html v1.8</footer>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="marca.js"></script>
@@ -329,9 +329,8 @@
         <td>${icone(l.c.rede)}${esc(nomeConta(l.c))}</td>
         <td>${num(l.atual)}</td>
         <td style="color:${l.dif > 0 ? "var(--ok)" : l.dif < 0 ? "var(--erro)" : "inherit"}">${l.dif == null ? "—" : (l.dif > 0 ? "+" : "") + num(l.dif)}</td>
-        <td>${num(l.vis)}${l.estV ? "*" : ""}</td><td>${num(l.inter)}${l.estI ? "*" : ""}</td><td>${l.posts}</td>
-      </tr>`).join("")}</tbody></table>${linhas.some((l) => l.est)
-        ? `<p class="desc" style="margin:10px 0 0">* Essa rede não informa números por dia: é a soma dos posts publicados no período.</p>` : ""}`;
+        <td${l.estV ? ' title="Soma dos posts publicados no período"' : ""}>${num(l.vis)}</td><td${l.estI ? ' title="Soma dos posts publicados no período"' : ""}>${num(l.inter)}</td><td>${l.posts}</td>
+      </tr>`).join("")}</tbody></table>`;
     $("resumo").querySelectorAll("tr.linha-conta").forEach((tr) => tr.addEventListener("click", () => {
       contaId = tr.dataset.id; $("conta").value = contaId; lembrarConta(); carregar();
     }));
