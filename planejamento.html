@@ -170,7 +170,7 @@
   <div class="aviso" id="aviso"></div>
   <div id="area"></div>
 </main>
-<footer>Clic Redes · planejamento.html v1.7 · horários de Brasília</footer>
+<footer>Clic Redes · planejamento.html v1.8 · horários de Brasília</footer>
 
 <!-- Editor de post -->
 <div class="fundo-modal" id="fundoModal">
@@ -248,6 +248,7 @@
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="marca.js"></script>
 <script>
   const SUPABASE_URL = "https://ochesgabptfapmogxmvv.supabase.co";
   const SUPABASE_KEY = "sb_publishable_J06qsVfOBpm4LdMu-hmkiQ_LO7TIyfE";
@@ -315,9 +316,8 @@
     const { data } = await sb.auth.getSession();
     if (!data.session) { location.href = "index.html"; return; }
 
-    const { data: marcas } = await sb.from("marcas").select("id, nome").order("criado_em").limit(1);
-    if (!marcas || !marcas.length) { location.href = "contas.html"; return; }
-    marca = marcas[0];
+    marca = await ClicMarca.carregar(sb);
+    if (!marca) { location.href = "contas.html"; return; }
 
     const { data: cs } = await sb.from("contas_redes")
       .select("id, rede, nome, usuario, foto_url, ativo")
