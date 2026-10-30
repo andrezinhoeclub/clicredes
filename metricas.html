@@ -171,7 +171,7 @@
     </section>
   </div>
 </main>
-<footer>Clic Redes · metricas.html v1.6</footer>
+<footer>Clic Redes · metricas.html v1.7</footer>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="marca.js"></script>
@@ -292,6 +292,14 @@
     });
   }
 
+  function somaPosts(lista, campos) {
+    let total = null;
+    for (const p of lista) for (const c of campos) {
+      if (p[c] != null) total = (total || 0) + Number(p[c]);
+    }
+    return total;
+  }
+
   function desenharResumo() {
     const bloco = $("blocoResumo");
     if (contaId !== TODAS) { bloco.hidden = true; return; }
@@ -308,7 +316,12 @@
         return v.length ? v.reduce((s, d) => s + d[campo], 0) : null;
       };
       const posts = postsPeriodo.filter((p) => p.conta_id === c.id);
-      return { c, atual, dif, vis: soma("visualizacoes"), inter: soma("interacoes"), posts: posts.length };
+      // TikTok e Paginas do Facebook nao dao numeros por dia:
+      // usa a soma dos posts publicados no periodo (marcado com *)
+      let vis = soma("visualizacoes"), inter = soma("interacoes"), estV = false, estI = false;
+      if (vis == null && posts.length) { vis = somaPosts(posts, ["visualizacoes"]); estV = vis != null; }
+      if (inter == null && posts.length) { inter = somaPosts(posts, ["curtidas", "comentarios", "compartilhamentos", "salvos"]); estI = inter != null; }
+      return { c, atual, dif, vis, inter, estV, estI, est: estV || estI, posts: posts.length };
     });
     $("resumo").innerHTML = `<table class="resumo"><thead><tr>
         <th>Conta</th><th>Seguidores / inscritos</th><th>Variação</th><th>Visualizações</th><th>Interações</th><th>Posts</th>
@@ -316,8 +329,9 @@
         <td>${icone(l.c.rede)}${esc(nomeConta(l.c))}</td>
         <td>${num(l.atual)}</td>
         <td style="color:${l.dif > 0 ? "var(--ok)" : l.dif < 0 ? "var(--erro)" : "inherit"}">${l.dif == null ? "—" : (l.dif > 0 ? "+" : "") + num(l.dif)}</td>
-        <td>${num(l.vis)}</td><td>${num(l.inter)}</td><td>${l.posts}</td>
-      </tr>`).join("")}</tbody></table>`;
+        <td>${num(l.vis)}${l.estV ? "*" : ""}</td><td>${num(l.inter)}${l.estI ? "*" : ""}</td><td>${l.posts}</td>
+      </tr>`).join("")}</tbody></table>${linhas.some((l) => l.est)
+        ? `<p class="desc" style="margin:10px 0 0">* Essa rede não informa números por dia: é a soma dos posts publicados no período.</p>` : ""}`;
     $("resumo").querySelectorAll("tr.linha-conta").forEach((tr) => tr.addEventListener("click", () => {
       contaId = tr.dataset.id; $("conta").value = contaId; lembrarConta(); carregar();
     }));
@@ -340,15 +354,27 @@
     const interPosts = postsPeriodo.reduce((s, p) => s + (p.curtidas || 0) + (p.comentarios || 0) + (p.salvos || 0) + (p.compartilhamentos || 0), 0);
     const alcPosts = postsPeriodo.reduce((s, p) => s + (p.alcance || p.visualizacoes || 0), 0);
     const engaj = alcPosts ? (interPosts / alcPosts) * 100 : null;
+    // Contas sem numeros por dia (TikTok, Paginas): entram pela soma dos posts
+    const comDiario = (campo) => new Set(diariasPorConta.filter((d) => d.dia >= limite && d[campo] != null).map((d) => d.conta_id));
+    const extra = (campo, campos) => {
+      const tem = comDiario(campo);
+      return somaPosts(postsPeriodo.filter((p) => !tem.has(p.conta_id)), campos);
+    };
+    const visExtra = extra("visualizacoes", ["visualizacoes"]);
+    const interExtra = extra("interacoes", ["curtidas", "comentarios", "compartilhamentos", "salvos"]);
+    const visDia = soma("visualizacoes"), interDia = soma("interacoes");
+    const visKpi = visDia == null && visExtra == null ? null : (visDia || 0) + (visExtra || 0);
+    const interKpi = interDia == null && interExtra == null ? null : (interDia || 0) + (interExtra || 0);
+    const visEst = visDia == null && visExtra != null, interEst = interDia == null && interExtra != null;
 
     const kpi = (nome, valor, varTxt, classe) => `<div class="kpi"><div class="nome">${nome}</div>
       <div class="valor">${valor}</div><div class="var ${classe || ""}">${varTxt || "&nbsp;"}</div></div>`;
     $("kpis").innerHTML =
       kpi(rotuloSeg, num(segAtual),
         dif == null ? "" : `${dif >= 0 ? "+" : ""}${num(dif)} no período`, dif > 0 ? "sobe" : dif < 0 ? "desce" : "") +
-      kpi("Visualizações", num(soma("visualizacoes")), `últimos ${dias} dias`) +
+      kpi("Visualizações", num(visKpi), visEst ? "soma dos posts do período" : `últimos ${dias} dias`) +
       kpi("Alcance", num(soma("alcance")), "soma dos dias") +
-      kpi("Interações", num(soma("interacoes")), `últimos ${dias} dias`) +
+      kpi("Interações", num(interKpi), interEst ? "soma dos posts do período" : `últimos ${dias} dias`) +
       kpi("Engajamento dos posts", engaj == null ? "—" : engaj.toLocaleString("pt-BR", { maximumFractionDigits: 1 }) + "%",
         `${postsPeriodo.length} post(s) no período`);
   }
