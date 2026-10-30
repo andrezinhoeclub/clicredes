@@ -171,9 +171,10 @@
     </section>
   </div>
 </main>
-<footer>Clic Redes · metricas.html v1.5</footer>
+<footer>Clic Redes · metricas.html v1.6</footer>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="marca.js"></script>
 <script>
   const SUPABASE_URL = "https://ochesgabptfapmogxmvv.supabase.co";
   const SUPABASE_KEY = "sb_publishable_J06qsVfOBpm4LdMu-hmkiQ_LO7TIyfE";
@@ -219,10 +220,10 @@
   async function iniciar() {
     const { data } = await sb.auth.getSession();
     if (!data.session) { location.href = "index.html"; return; }
-    const { data: marcas } = await sb.from("marcas").select("id").order("criado_em").limit(1);
-    if (!marcas?.length) { location.href = "contas.html"; return; }
+    const marcaAtual = await ClicMarca.carregar(sb);
+    if (!marcaAtual) { location.href = "contas.html"; return; }
     const { data: cs } = await sb.from("contas_redes")
-      .select("id, rede, nome, usuario").eq("marca_id", marcas[0].id).eq("ativo", true).order("criado_em");
+      .select("id, rede, nome, usuario").eq("marca_id", marcaAtual.id).eq("ativo", true).order("criado_em");
     contas = (cs || []).filter((c) => ["instagram", "facebook", "youtube", "tiktok"].includes(c.rede));
     if (!contas.length) { $("semConta").hidden = false; $("atualizar").disabled = true; return; }
     $("conta").innerHTML = (contas.length > 1 ? `<option value="${TODAS}">Todas as contas (${contas.length})</option>` : "") +
