@@ -65,6 +65,7 @@
   footer{text-align:center;font-size:12px;color:var(--suave);padding:0 16px 28px}
   @media (max-width:900px){ .topo{flex-wrap:wrap} nav{order:3;flex-basis:100%;margin-left:0} .sair{margin-left:auto} }
   @media (max-width:560px){ .conta{flex-wrap:wrap} }
+  .mover{font:inherit;font-size:13px;padding:5px 8px;border:1px solid var(--borda,#dde3e8);border-radius:7px;background:#fff;max-width:150px}
 </style>
 </head>
 <body>
@@ -88,9 +89,10 @@
 
   <!-- Aparece so na primeira vez, quando ainda nao existe marca -->
   <section class="cartao marca-nova" id="marcaNova" hidden>
-    <label for="nomeMarca">Nome da sua primeira marca</label>
-    <input id="nomeMarca" value="Clic Redes" maxlength="60">
-    <br><button class="btn principal" id="criarMarca">Criar marca</button>
+    <label for="nomeMarca">Nome da nova empresa</label>
+    <input id="nomeMarca" value="" placeholder="Ex.: E-Club, Remixinho" maxlength="60">
+    <br><button class="btn principal" id="criarMarca">Criar empresa</button>
+    <button class="btn" id="cancelarMarca" hidden>Cancelar</button>
   </section>
 
   <section id="painel" hidden>
@@ -104,9 +106,10 @@
     <div class="lista" id="lista"></div>
   </section>
 </main>
-<footer>Clic Redes · contas.html v1.7</footer>
+<footer>Clic Redes · contas.html v1.8</footer>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="marca.js"></script>
 <script>
   const SUPABASE_URL = "https://ochesgabptfapmogxmvv.supabase.co";
   const SUPABASE_KEY = "sb_publishable_J06qsVfOBpm4LdMu-hmkiQ_LO7TIyfE";
@@ -141,6 +144,7 @@
 
   let marca = null;
   const $ = (id) => document.getElementById(id);
+  const pedirNova = new URLSearchParams(location.search).get("nova") === "1";
 
   function mostrarAviso(texto, tipo) {
     const a = $("aviso");
@@ -175,17 +179,16 @@
     const { data } = await sb.auth.getSession();
     if (!data.session) { location.href = "index.html"; return; }
 
-    const { data: marcas, error } = await sb.from("marcas")
-      .select("id, nome").order("criado_em").limit(1);
-    if (error) { $("sub").textContent = "Erro ao carregar. Atualize a página."; return; }
-
-    if (!marcas.length) {
-      $("sub").textContent = "Antes de conectar, crie a sua marca.";
+    marca = await ClicMarca.carregar(sb);
+    if (!marca || pedirNova) {
+      $("sub").textContent = marca ? "Crie uma nova empresa para separar as contas dela." : "Antes de conectar, crie a sua empresa.";
       $("marcaNova").hidden = false;
+      $("cancelarMarca").hidden = !marca;
+      $("painel").hidden = true;
+      $("nomeMarca").focus();
       return;
     }
-    marca = marcas[0];
-    $("sub").textContent = `Marca: ${marca.nome}`;
+    $("sub").textContent = `Empresa: ${marca.nome} · as contas conectadas aqui ficam nesta empresa`;
     $("marcaNova").hidden = true;
     $("painel").hidden = false;
     await carregarContas();
@@ -219,12 +222,26 @@
           <div class="det">${REDES[c.rede] || c.rede} · ${c.rede === "facebook" ? "Página" : c.rede === "youtube" ? "Canal" : c.rede === "tiktok" ? "Perfil" : "@" + esc(c.usuario)}${c.rede === "instagram" && c.via === "facebook" ? " · pelo Facebook" : ""}${validade}</div>
         </div>
         ${selo}
+        ${ClicMarca.lista.length > 1 ? `<select class="mover" data-id="${c.id}" aria-label="Mover para outra empresa" title="Mover para outra empresa">
+          ${ClicMarca.lista.map((m) => `<option value="${m.id}" ${m.id === marca.id ? "selected" : ""}>${esc(m.nome)}</option>`).join("")}
+        </select>` : ""}
         <button class="remover" data-id="${c.id}" data-nome="${esc(c.nome || c.usuario)}">Remover</button>
       </div>`;
     }).join("");
 
     lista.querySelectorAll(".remover").forEach((b) =>
       b.addEventListener("click", () => remover(b.dataset.id, b.dataset.nome)));
+    lista.querySelectorAll(".mover").forEach((s) =>
+      s.addEventListener("change", () => mover(s.dataset.id, s.value)));
+  }
+
+  async function mover(id, novaMarca) {
+    const destino = ClicMarca.lista.find((m) => m.id === novaMarca);
+    if (!destino || novaMarca === marca.id) return;
+    const { error } = await sb.from("contas_redes").update({ marca_id: novaMarca }).eq("id", id);
+    if (error) { mostrarAviso("Não foi possível mover a conta.", "erro"); return; }
+    mostrarAviso(`Conta movida para ${destino.nome}. Os posts antigos dela continuam onde estavam.`, "ok");
+    carregarContas();
   }
 
   async function remover(id, nome) {
@@ -238,11 +255,13 @@
     const nome = $("nomeMarca").value.trim();
     if (!nome) return;
     $("criarMarca").disabled = true;
-    const { error } = await sb.from("marcas").insert({ nome });
+    const { data: nova, error } = await sb.from("marcas").insert({ nome }).select("id").single();
     $("criarMarca").disabled = false;
-    if (error) { mostrarAviso("Não foi possível criar a marca.", "erro"); return; }
-    iniciar();
+    if (error || !nova) { mostrarAviso("Não foi possível criar a empresa.", "erro"); return; }
+    ClicMarca.escolher(nova.id);
+    location.href = "contas.html";
   });
+  $("cancelarMarca").addEventListener("click", () => { location.href = "contas.html"; });
 
   async function conectar(botaoId, funcao, textoEspera) {
     const btn = $(botaoId);
