@@ -1,6 +1,6 @@
 // =====================================================================
 // Clic Redes - marca.js
-// Versao 1.1 - 30/10/2026 (jeito de aplicativo no celular)
+// Versao 1.2 - 04/11/2026 (logo nova no topo de todas as telas)
 // Escolha da empresa (E-Club, Remixinho...) no topo de todas as telas.
 // A escolha fica guardada neste navegador e vale para todas as telas.
 // No celular: topo fixo e compacto + barra de botoes embaixo, como app.
@@ -79,6 +79,7 @@ window.ClicMarca = {
   if (vp && !vp.content.includes("viewport-fit")) vp.content += ", viewport-fit=cover";
 
   const css = `
+  .logo span{background:url(icone-app.png) center/cover no-repeat!important;color:transparent!important;font-size:0!important}
   .barra-app{display:none}
   @media (max-width:760px){
     header{position:sticky;top:0;z-index:15;padding-top:env(safe-area-inset-top)}
