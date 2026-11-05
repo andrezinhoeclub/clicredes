@@ -178,7 +178,7 @@
     </section>
   </div>
 </main>
-<footer>Clic Redes · caixa.html v1.3</footer>
+<footer>Clic Redes · caixa.html v1.4</footer>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="marca.js"></script>
@@ -327,7 +327,7 @@
       ? `Direct · para @${esc(conta?.usuario)}`
       : `Comentário · @${esc(conta?.usuario)}${link ? ` · <a href="${esc(link)}" target="_blank" rel="noopener">ver post</a>` : ""}`;
     $("resolver").textContent = c.resolvida ? "Reabrir" : "Marcar como resolvida";
-    $("avisoDm").hidden = c.tipo !== "mensagem";
+    $("avisoDm").hidden = true; // so aparece se a Meta bloquear a resposta
     $("avisoDm").classList.remove("forte");
     $("dica").textContent = c.tipo === "mensagem"
       ? "Pelo Instagram, só dá para responder até 24h após a última mensagem da pessoa."
@@ -361,7 +361,7 @@
       if (!msg && error?.context) { try { msg = (await error.context.json()).erro; } catch (_) { /* sem corpo */ } }
       // Direct bloqueado pela Meta enquanto o app nao passa pela analise
       if (atual.tipo === "mensagem" && /\(#10\)|per[ií]odo permitido|24 horas|window/i.test(msg || "")) {
-        $("avisoDmTexto").textContent = "A Meta bloqueou esta resposta de Direct (o app ainda não passou pela análise). Copie o texto e responda pelo app do Instagram.";
+        $("avisoDmTexto").textContent = "A Meta não aceitou esta resposta de Direct. Copie o texto e responda pelo app do Instagram.";
         $("avisoDm").classList.add("forte");
         $("avisoDm").hidden = false;
         return;
