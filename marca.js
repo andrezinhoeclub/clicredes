@@ -167,3 +167,4 @@ window.ClicMarca = {
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", montarBarra);
   else montarBarra();
 })();
+
